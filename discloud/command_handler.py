@@ -24,7 +24,7 @@ class CommandHandler(object):
         SIZE = "64"
 
         config = configparser.ConfigParser()
-        config.read("discloud/config/google_icons.ini")
+        config.read("config/google_icons.ini")
 
         google_icon_code = config["GoogleIcons"][str(weather_code)]
 
