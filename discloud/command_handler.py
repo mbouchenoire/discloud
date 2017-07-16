@@ -58,6 +58,28 @@ class CommandHandler(object):
 
         return TEMPLATE.format(SIZE, google_icon_code)
 
+    @staticmethod
+    def __get_color__(weather_code: int, temperature_min: float, temperature_max: float) -> int:
+        COLORS = {"green": 0x4CAF50, "light_green": 0x8BC34A, "lime": 0xCDDC39, 
+                    "yellow": 0xFFEB3B, "amber": 0xFFC107, "orange": 0xFF9800, "deep_orange": 0xFF5722, "red": 0xF44336}
+
+        config = configparser.ConfigParser()
+        
+        config.read("config/temperature.ini")
+        cold_threshold = int(config["Thresholds"]["cold"])
+        hot_threshold = int(config["Thresholds"]["hot"])
+        temperature_threshold_color = config["Thresholds"]["color"]
+
+        config.read("config/weather_colors.ini")
+
+        if temperature_min <= cold_threshold or temperature_max >= hot_threshold:
+            return temperature_threshold_color
+
+        config.read("config/weather_colors.ini")
+        weather_color_code = config["WeatherColors"][str(weather_code)]
+
+        return COLORS[weather_color_code]
+
     def __create_embed_weather__(self, weather, date, place) -> discord.Embed:
         detailed_status = weather._detailed_status.title()
         weather_code = weather._weather_code
@@ -77,7 +99,8 @@ class CommandHandler(object):
         wind_speed = int(weather.get_wind()["speed"] * 3.6)
         icon_url = CommandHandler.__weather_code_to_google_icon_url__(weather_code)
 
-        embed = discord.Embed(colour=0x00FF00)
+        color = CommandHandler.__get_color__(weather_code, temperature_min, temperature_max)
+        embed = discord.Embed(colour=color)
         embed.title = "{} @ {}".format(date.strftime("%A %d %B"), place.title())
         embed.description = detailed_status
         embed.add_field(name="High temp.", value=str(int(temperature_max)) + "°C")
