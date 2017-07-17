@@ -73,7 +73,7 @@ class CommandHandler(object):
         config.read("config/weather_colors.ini")
 
         if temperature_min <= cold_threshold or temperature_max >= hot_threshold:
-            return temperature_threshold_color
+            return COLORS[temperature_threshold_color]
 
         config.read("config/weather_colors.ini")
         weather_color_code = config["WeatherColors"][str(weather_code)]
