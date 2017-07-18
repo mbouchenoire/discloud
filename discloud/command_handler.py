@@ -52,9 +52,9 @@ class CommandHandler(object):
         SIZE = "64"
 
         config = configparser.ConfigParser()
-        config.read("config/google_icons.ini")
+        config.read("config/open_weather_map.ini")
 
-        google_icon_code = config["GoogleIcons"][str(weather_code)]
+        google_icon_code = config["Icons"][str(weather_code)]
 
         return TEMPLATE.format(SIZE, google_icon_code)
 
@@ -70,13 +70,11 @@ class CommandHandler(object):
         hot_threshold = int(config["Thresholds"]["hot"])
         temperature_threshold_color = config["Thresholds"]["color"]
 
-        config.read("config/weather_colors.ini")
-
         if temperature_min <= cold_threshold or temperature_max >= hot_threshold:
             return COLORS[temperature_threshold_color]
 
-        config.read("config/weather_colors.ini")
-        weather_color_code = config["WeatherColors"][str(weather_code)]
+        config.read("config/open_weather_map.ini")
+        weather_color_code = config["Colors"][str(weather_code)]
 
         return COLORS[weather_color_code]
 
