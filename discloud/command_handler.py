@@ -2,11 +2,14 @@ import datetime
 import configparser
 import discord
 from weather import WeatherService
+from settings import TemperatureSettings
 
 class CommandHandler(object):
-    def __init__(self, discord_client: discord.Client, weather_service: WeatherService):
+    def __init__(self, discord_client: discord.Client, weather_service: WeatherService,
+                 temperature_settings: TemperatureSettings):
         self.discord_client = discord_client
         self.weather_service = weather_service
+        self.temperature_settings = temperature_settings
 
     async def handle(self, command):
         INVALID_FORMAT_MESSAGE = "the weather command format must be '!weather <offset>@<place>' (e.g. !weather +1@Nantes)"
@@ -42,7 +45,7 @@ class CommandHandler(object):
 
         day = datetime.datetime.today() + datetime.timedelta(days=offset)
         weather = self.weather_service.get_forecast(place, day)
-        embed = self.__create_embed_weather__(weather, day, place)
+        embed = self.__create_embed_weather__(weather, day, place, self.temperature_settings)
 
         await self.discord_client.send_message(command.channel, embed=embed)
 
@@ -54,31 +57,28 @@ class CommandHandler(object):
         config = configparser.ConfigParser()
         config.read("config/open_weather_map.ini")
 
-        google_icon_code = config["Icons"][str(weather_code)]
+        google_icon_code = config["icons"][str(weather_code)]
 
         return TEMPLATE.format(SIZE, google_icon_code)
 
     @staticmethod
-    def __get_color__(weather_code: int, temperature_min: float, temperature_max: float) -> int:
+    def __get_color__(weather_code: int, temperature_min: float, temperature_max: float,
+                      temperature_settings: TemperatureSettings) -> int:
         COLORS = {"green": 0x4CAF50, "light_green": 0x8BC34A, "lime": 0xCDDC39, 
                     "yellow": 0xFFEB3B, "amber": 0xFFC107, "orange": 0xFF9800, "deep_orange": 0xFF5722, "red": 0xF44336}
 
+        if temperature_min <= temperature_settings.threshold_cold \
+                or temperature_max >= temperature_settings.threshold_hot:
+            return COLORS[temperature_settings.threshold_color]
+
         config = configparser.ConfigParser()
-        
-        config.read("config/temperature.ini")
-        cold_threshold = int(config["Thresholds"]["cold"])
-        hot_threshold = int(config["Thresholds"]["hot"])
-        temperature_threshold_color = config["Thresholds"]["color"]
-
-        if temperature_min <= cold_threshold or temperature_max >= hot_threshold:
-            return COLORS[temperature_threshold_color]
-
         config.read("config/open_weather_map.ini")
-        weather_color_code = config["Colors"][str(weather_code)]
+        weather_color_code = config["colors"][str(weather_code)]
 
         return COLORS[weather_color_code]
 
-    def __create_embed_weather__(self, weather, date, place) -> discord.Embed:
+    def __create_embed_weather__(self, weather, date: datetime, place: str,
+                                 temperature_settings: TemperatureSettings) -> discord.Embed:
         detailed_status = weather._detailed_status.title()
         weather_code = weather._weather_code
         humidity = weather.get_humidity()
@@ -97,7 +97,7 @@ class CommandHandler(object):
         wind_speed = int(weather.get_wind()["speed"] * 3.6)
         icon_url = CommandHandler.__weather_code_to_google_icon_url__(weather_code)
 
-        color = CommandHandler.__get_color__(weather_code, temperature_min, temperature_max)
+        color = CommandHandler.__get_color__(weather_code, temperature_min, temperature_max, temperature_settings)
         embed = discord.Embed(colour=color)
         embed.title = "{} @ {}".format(date.strftime("%A %d %B"), place.title())
         embed.description = detailed_status

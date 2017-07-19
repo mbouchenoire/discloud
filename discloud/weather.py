@@ -3,6 +3,8 @@ import configparser
 import logging
 import pyowm
 import discord
+from settings import HomeSettings
+
 
 class WeatherService(object):
     def __init__(self, pyowm_api_key: str, discord_client: discord.Client):
@@ -14,7 +16,7 @@ class WeatherService(object):
         config = configparser.ConfigParser()
         config.read("config/open_weather_map.ini")
 
-        google_icon_code = config["Icons"][str(weather_code)]
+        google_icon_code = config["icons"][str(weather_code)]
 
         f = open("images/google/{}.png".format(google_icon_code), "rb")
         
@@ -34,12 +36,12 @@ class WeatherService(object):
             forecast = self.owm.daily_forecast(place)
             return forecast.get_weather_at(when)
 
-    async def update_realtime_weather(self, place: str):
-        weather = self.owm.weather_at_place(place).get_weather()
+    async def update_realtime_weather(self, home_settings: HomeSettings, temperature_unit: str):
+        weather = self.owm.weather_at_place(home_settings.full_name).get_weather()
         avatar_bytes = WeatherService.__get_avatar_bytes__(weather._weather_code)
 
-        temp = weather.get_temperature("celsius")["temp"]
-        status_text = "{}°C @ {}".format(str(int(temp)), place)
+        temp = weather.get_temperature(temperature_unit)["temp"]
+        status_text = "{}°C @ {}".format(str(int(temp)), home_settings.display_name)
 
         logging.info("updating discloud profile presence...")
         await self.discord_client.change_presence(game=discord.Game(name=status_text))

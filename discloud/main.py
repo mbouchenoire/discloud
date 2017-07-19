@@ -1,31 +1,36 @@
 import asyncio
-import datetime
 import discord
 from command_handler import CommandHandler
 from weather import WeatherService
+from settings import IntegrationSettings, HomeSettings, TemperatureSettings, ApplicationSettings
 
-class Main(object):
-    def __init__(self, discord_bot_token: str, discord_channel_id: str, open_weather_map_api_key: str, home: str, update_frequency: int):
-        self.discord_bot_token = discord_bot_token
-        self.discord_channel_id = discord_channel_id
-        self.open_weather_map_api_key = open_weather_map_api_key
-        self.home = home
-        self.update_frequency = update_frequency
 
-    def run(self):
+class Application(object):
+    def __init__(self, application_settings: ApplicationSettings) -> None:
+        self.settings = application_settings
+
+    def run(self) -> None:
         discord_client = discord.Client()
-        weather_service = WeatherService(self.open_weather_map_api_key, discord_client)
+        weather_service = WeatherService(self.settings.integration_settings.open_weather_map_api_key, discord_client)
 
         @discord_client.event
-        async def on_message(message):
-            await CommandHandler(discord_client, weather_service).handle(message)
+        async def on_message(message) -> None:
+            await CommandHandler(discord_client, weather_service, self.settings.temperature_settings).handle(message)
 
-        async def update_realtime_weather():
+        async def update_realtime_weather() -> None:
             await discord_client.wait_until_ready()
 
             while not discord_client.is_closed:
-                await weather_service.update_realtime_weather(self.home)
-                await asyncio.sleep(self.update_frequency)
+                await weather_service.update_realtime_weather(self.settings.home_settings,
+                                                              self.settings.temperature_settings.unit)
+
+                await asyncio.sleep(self.settings.home_settings.update_frequency * 60)
 
         discord_client.loop.create_task(update_realtime_weather())
-        discord_client.run(self.discord_bot_token)
+        discord_client.run(self.settings.integration_settings.discord_bot_token)
+
+
+
+
+
+

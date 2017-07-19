@@ -1,19 +1,31 @@
 import os
 import logging
-from main import Main
+import configparser
+from main import Application, ApplicationSettings, IntegrationSettings, HomeSettings, TemperatureSettings
 
 def check_environment_variable(key, value):
     if not value: raise ValueError("environment variable '" + key + "' must be set")
 
 logging.basicConfig(level=logging.INFO)
 
-DISCORD_BOT_TOKEN = os.environ["DISCORD_BOT_TOKEN"]
-check_environment_variable("DISCORD_BOT_TOKEN", DISCORD_BOT_TOKEN)
+CONFIG = configparser.ConfigParser()
+CONFIG.read("config/application.ini")
 
-DISCORD_CHANNEL_ID = os.environ["DISCORD_CHANNEL_ID"]
-check_environment_variable("DISCORD_CHANNEL_ID", DISCORD_CHANNEL_ID)
+DISCORD_BOT_TOKEN = CONFIG["integration"]["discord_bot_token"]
+OPEN_WEATHER_MAP_API_KEY = CONFIG["integration"]["open_weather_map_api_key"]
+HOME_FULL_NAME = CONFIG["home"]["full_name"]
+HOME_DISPLAY_NAME = CONFIG["home"]["display_name"]
+HOME_UPDATE_FREQUENCY = CONFIG["home"]["update_frequency"]
+TEMPERATURE_UNIT = CONFIG["temperature"]["unit"]
+TEMPERATURE_THRESHOLD_HOT = CONFIG["temperature"]["threshold_hot"]
+TEMPERATURE_THRESHOLD_COLD = CONFIG["temperature"]["threshold_cold"]
+TEMPERATURE_THRESHOLD_COLOR = CONFIG["temperature"]["threshold_color"]
 
-OPEN_WEATHER_MAP_API_KEY = os.environ["OPEN_WEATHER_MAP_API_KEY"]
-check_environment_variable("OPEN_WEATHER_MAP_API_KEY", OPEN_WEATHER_MAP_API_KEY)
+INTEGRATION_SETTINGS = IntegrationSettings(DISCORD_BOT_TOKEN, OPEN_WEATHER_MAP_API_KEY)
+HOME_SETTINGS = HomeSettings(HOME_FULL_NAME, HOME_DISPLAY_NAME, HOME_UPDATE_FREQUENCY)
+TEMPERATURE_SETTINGS = TemperatureSettings(TEMPERATURE_UNIT, TEMPERATURE_THRESHOLD_HOT,
+                                           TEMPERATURE_THRESHOLD_COLD, TEMPERATURE_THRESHOLD_COLOR)
 
-Main(DISCORD_BOT_TOKEN, DISCORD_CHANNEL_ID, OPEN_WEATHER_MAP_API_KEY, "Nantes", 900).run()
+APPLICATION_SETTINGS = ApplicationSettings(INTEGRATION_SETTINGS, HOME_SETTINGS, TEMPERATURE_SETTINGS)
+
+Application(APPLICATION_SETTINGS).run()
