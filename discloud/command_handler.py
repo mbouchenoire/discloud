@@ -1,33 +1,42 @@
 import datetime
-import configparser
 import discord
-from weather import WeatherService
 from settings import TemperatureSettings
+from weather import OwmWeatherService
+from embed_weather import OwmEmbedWeatherFactory
+
 
 class CommandHandler(object):
-    def __init__(self, discord_client: discord.Client, weather_service: WeatherService,
-                 temperature_settings: TemperatureSettings):
-        self.discord_client = discord_client
-        self.weather_service = weather_service
-        self.temperature_settings = temperature_settings
+    _INVALID_COMMAND_FORMAT_MSG = "the weather command format must be '!weather <offset>@<place>'" \
+                                      " (e.g. !weather +1@Nantes)"
+    _INVALID_OSSET_MSG = "the forecast daily offset must be >= 0"
+    _MISSING_PLACE_MSG = "the place is mandatory (@<place>)"
 
-    async def handle(self, command):
-        INVALID_FORMAT_MESSAGE = "the weather command format must be '!weather <offset>@<place>' (e.g. !weather +1@Nantes)"
+    _VALID_COMMAND_PREFIXES = ["!weather", "weather", "!meteo", "meteo"]
 
+    def __init__(self,
+                 owm_weather_service: OwmWeatherService,
+                 temperature_settings: TemperatureSettings,
+                 discord_client: discord.Client):
+        self._owm_weather_service = owm_weather_service
+        self._temperature_settings = temperature_settings
+        self._discord_client = discord_client
+
+    async def handle(self, command) -> None:
         content = command.content
 
-        if not content.startswith("!meteo") and not content.startswith("!weather"):
-            return
+        if not any(prefix in content for prefix in CommandHandler._VALID_COMMAND_PREFIXES):
+            return None
 
-        content = content.replace("!meteo", "").replace("!weather", "")
+        for valid_prefix in CommandHandler._VALID_COMMAND_PREFIXES:
+            content = content.replace(valid_prefix, "")
 
         if "@" not in content:
-            return await self.discord_client.send_message(command.channel, INVALID_FORMAT_MESSAGE)
+            return await self._discord_client.send_message(command.channel, CommandHandler._INVALID_COMMAND_FORMAT_MSG)
 
         parts = content.split("@")
 
         if len(parts) != 2:
-            return await self.discord_client.send_message(command.channel, INVALID_FORMAT_MESSAGE)
+            return await self._discord_client.send_message(command.channel, CommandHandler._INVALID_COMMAND_FORMAT_MSG)
 
         offset_str = parts[0]
         place = parts[1]
@@ -38,76 +47,18 @@ class CommandHandler(object):
             offset = int(offset_str)
 
             if offset < 0:
-                return await self.discord_client.send_message(command.channel, "the forecast daily offset must be >= 0")
+                return await self._discord_client.send_message(command.channel, CommandHandler._INVALID_OSSET_MSG)
 
         if place is None or place == "":
-            return await self.discord_client.send_message(command.channel, "the place is mandatory (@<place>)")
+            return await self._discord_client.send_message(command.channel, CommandHandler._MISSING_PLACE_MSG)
 
         day = datetime.datetime.today() + datetime.timedelta(days=offset)
-        weather = self.weather_service.get_forecast(place, day)
-        embed = self.__create_embed_weather__(weather, day, place, self.temperature_settings)
 
-        await self.discord_client.send_message(command.channel, embed=embed)
+        embed_weather_factory = OwmEmbedWeatherFactory(self._owm_weather_service,
+                                                       day,
+                                                       place,
+                                                       self._temperature_settings)
 
-    @staticmethod
-    def __weather_code_to_google_icon_url__(weather_code: int) -> str:
-        TEMPLATE = "https://ssl.gstatic.com/onebox/weather/{}/{}.png"
-        SIZE = "64"
+        embed_weather = embed_weather_factory.create_embed_weather()
 
-        config = configparser.ConfigParser()
-        config.read("config/open_weather_map.ini")
-
-        google_icon_code = config["icons"][str(weather_code)]
-
-        return TEMPLATE.format(SIZE, google_icon_code)
-
-    @staticmethod
-    def __get_color__(weather_code: int, temperature_min: float, temperature_max: float,
-                      temperature_settings: TemperatureSettings) -> int:
-        COLORS = {"green": 0x4CAF50, "light_green": 0x8BC34A, "lime": 0xCDDC39, 
-                    "yellow": 0xFFEB3B, "amber": 0xFFC107, "orange": 0xFF9800, "deep_orange": 0xFF5722, "red": 0xF44336}
-
-        if temperature_min <= temperature_settings.threshold_cold \
-                or temperature_max >= temperature_settings.threshold_hot:
-            return COLORS[temperature_settings.threshold_color]
-
-        config = configparser.ConfigParser()
-        config.read("config/open_weather_map.ini")
-        weather_color_code = config["colors"][str(weather_code)]
-
-        return COLORS[weather_color_code]
-
-    def __create_embed_weather__(self, weather, date: datetime, place: str,
-                                 temperature_settings: TemperatureSettings) -> discord.Embed:
-        detailed_status = weather._detailed_status.title()
-        weather_code = weather._weather_code
-        humidity = weather.get_humidity()
-        temperature = weather.get_temperature("celsius")
-
-        temperature_min = None
-        temperature_max = None
-        
-        if "temp_min" in temperature: # when manipulating today's weather (observation)
-            temperature_min = temperature["temp_min"]
-            temperature_max = temperature["temp_max"]
-        elif "min" in temperature: # when manipulating forecast
-            temperature_min = temperature["min"]
-            temperature_max = temperature["max"]
-
-        wind_speed = int(weather.get_wind()["speed"] * 3.6)
-        icon_url = CommandHandler.__weather_code_to_google_icon_url__(weather_code)
-
-        color = CommandHandler.__get_color__(weather_code, temperature_min, temperature_max, temperature_settings)
-        embed = discord.Embed(colour=color)
-        embed.title = "{} @ {}".format(date.strftime("%A %d %B"), place.title())
-        embed.description = detailed_status
-        embed.add_field(name="High temp.", value=str(int(temperature_max)) + "°C")
-        embed.add_field(name="Low temp.", value=str(int(temperature_min)) + "°C")
-        embed.add_field(name="Humidity", value=str(humidity) + "%")
-        embed.add_field(name="Wind", value=str(wind_speed) + " km/h")
-        embed.set_thumbnail(url=icon_url)
-        embed.set_footer(text="github.com/mbouchenoire/discloud", icon_url="https://avatars6.githubusercontent.com/u/8810050?v=4&s=460")
-
-        return embed
-
-    
+        await self._discord_client.send_message(command.channel, embed=embed_weather)
