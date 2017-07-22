@@ -24,7 +24,7 @@ class CommandHandler(object):
     async def handle(self, command) -> None:
         content = command.content
 
-        if not any(prefix in content for prefix in CommandHandler._VALID_COMMAND_PREFIXES):
+        if not any(content.startswith(prefix) for prefix in CommandHandler._VALID_COMMAND_PREFIXES):
             return None
 
         for valid_prefix in CommandHandler._VALID_COMMAND_PREFIXES:
