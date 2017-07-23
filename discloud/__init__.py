@@ -1,6 +1,7 @@
 import logging
 import configparser
-from .main import Application, ApplicationSettings, IntegrationSettings, HomeSettings, TemperatureSettings
+from settings import IntegrationSettings, HomeSettings, TemperatureSettings, ApplicationSettings
+from main import Application
 
 logging.basicConfig(level=logging.INFO)
 

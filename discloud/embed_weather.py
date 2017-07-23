@@ -1,8 +1,8 @@
 import datetime
 import configparser
 import discord
-from .settings import TemperatureSettings
-from .weather import OwmWeatherService
+from settings import TemperatureSettings
+from weather import OwmWeatherService
 
 
 class EmbedWeatherFactory(object):
@@ -12,10 +12,9 @@ class EmbedWeatherFactory(object):
 
 class OwmEmbedWeatherFactory(EmbedWeatherFactory):
     _CONFIG_PATH = "config/open_weather_map.ini"
+    _COLORS_CONFIG_PATH = "config/colors.ini"
     _ICON_URL_TEMPLATE = "https://ssl.gstatic.com/onebox/weather/{}/{}.png"
     _ICON_SIZE = "64"
-    _COLORS = {"green": 0x4CAF50, "light_green": 0x8BC34A, "lime": 0xCDDC39, "yellow": 0xFFEB3B, "amber": 0xFFC107,
-               "orange": 0xFF9800, "deep_orange": 0xFF5722, "red": 0xF44336}
 
     @staticmethod
     def __weather_code_to_google_icon_url__(weather_code: int) -> str:
@@ -30,15 +29,19 @@ class OwmEmbedWeatherFactory(EmbedWeatherFactory):
     def __get_color__(weather_code: int, temperature_min: float, temperature_max: float,
                       temperature_settings: TemperatureSettings) -> int:
 
+        colors = configparser.ConfigParser()
+        colors.read(OwmEmbedWeatherFactory._COLORS_CONFIG_PATH)
+
         if temperature_min <= temperature_settings.threshold_cold \
                 or temperature_max >= temperature_settings.threshold_hot:
-            return OwmEmbedWeatherFactory._COLORS[temperature_settings.threshold_color]
+            return int(colors["material"][temperature_settings.threshold_color], 0)
 
-        config = configparser.ConfigParser()
-        config.read(OwmEmbedWeatherFactory._CONFIG_PATH)
-        weather_color_code = config["colors"][str(weather_code)]
+        owm_config = configparser.ConfigParser()
+        owm_config.read(OwmEmbedWeatherFactory._CONFIG_PATH)
 
-        return OwmEmbedWeatherFactory._COLORS[weather_color_code]
+        weather_color_code = owm_config["colors"][str(weather_code)]
+
+        return int(colors["material"][weather_color_code], 0)
 
     def __init__(self, owm_weather_service: OwmWeatherService, date: datetime.datetime, place: str,
                  temperature_settings: TemperatureSettings) -> None:

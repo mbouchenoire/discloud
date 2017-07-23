@@ -1,9 +1,9 @@
 import asyncio
 import discord
-from .command_handler import CommandHandler
-from .weather import OwmWeatherService
-from .realtime_weather import RealTimeWeatherService
-from .settings import ApplicationSettings
+from command_handler import CommandHandler
+from weather import OwmWeatherService
+from realtime_weather import RealTimeWeatherService
+from settings import ApplicationSettings
 
 
 class Application(object):

@@ -1,8 +1,8 @@
 import datetime
 import discord
-from .settings import TemperatureSettings
-from .weather import OwmWeatherService
-from .embed_weather import OwmEmbedWeatherFactory
+from settings import TemperatureSettings
+from weather import OwmWeatherService
+from embed_weather import OwmEmbedWeatherFactory
 
 
 class CommandHandler(object):
