@@ -1,10 +1,6 @@
-import os
 import logging
 import configparser
-from main import Application, ApplicationSettings, IntegrationSettings, HomeSettings, TemperatureSettings
-
-def check_environment_variable(key, value):
-    if not value: raise ValueError("environment variable '" + key + "' must be set")
+from .main import Application, ApplicationSettings, IntegrationSettings, HomeSettings, TemperatureSettings
 
 logging.basicConfig(level=logging.INFO)
 

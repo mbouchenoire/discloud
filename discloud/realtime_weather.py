@@ -1,8 +1,8 @@
 import logging
 import configparser
 import discord
-from settings import HomeSettings, TemperatureSettings
-from weather import OwmWeatherService
+from .settings import HomeSettings, TemperatureSettings
+from .weather import OwmWeatherService
 
 
 class RealTimeWeather(object):

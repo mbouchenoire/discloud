@@ -1,9 +1,9 @@
 import asyncio
 import discord
-from command_handler import CommandHandler
-from weather import OwmWeatherService
-from realtime_weather import RealTimeWeatherService
-from settings import IntegrationSettings, HomeSettings, TemperatureSettings, ApplicationSettings
+from .command_handler import CommandHandler
+from .weather import OwmWeatherService
+from .realtime_weather import RealTimeWeatherService
+from .settings import ApplicationSettings
 
 
 class Application(object):
@@ -35,9 +35,3 @@ class Application(object):
 
         discord_client.loop.create_task(update_realtime_weather())
         discord_client.run(self._settings.integration_settings.discord_bot_token)
-
-
-
-
-
-
