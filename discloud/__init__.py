@@ -3,10 +3,19 @@ import configparser
 from settings import IntegrationSettings, HomeSettings, TemperatureSettings, ApplicationSettings
 from main import Application
 
-logging.basicConfig(level=logging.INFO)
-
 CONFIG = configparser.ConfigParser()
 CONFIG.read("config/application.ini")
+
+LOGGING_LEVEL_STR = CONFIG["integration"]["logging_level"]
+
+if LOGGING_LEVEL_STR == "debug":
+    logging.basicConfig(level=logging.DEBUG)
+elif LOGGING_LEVEL_STR == "error":
+    logging.basicConfig(level=logging.ERROR)
+elif LOGGING_LEVEL_STR == "info":
+    logging.basicConfig(level=logging.INFO)
+else:
+    raise ValueError("logging level must be debug/error/info")
 
 DISCORD_BOT_TOKEN = CONFIG["integration"]["discord_bot_token"]
 OPEN_WEATHER_MAP_API_KEY = CONFIG["integration"]["open_weather_map_api_key"]

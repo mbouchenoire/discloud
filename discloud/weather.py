@@ -1,4 +1,5 @@
 import datetime
+import logging
 import pyowm
 
 
@@ -9,8 +10,14 @@ class OwmWeatherService(object):
     def get_weather(self, place: str, when=datetime.datetime.now()):
         is_today = when.date() == datetime.date.today()
 
+        logging.debug("retrieving weather: " + str(when) + "@" + place + "...")
+
         if is_today:
-            return self._owm.weather_at_place(place).get_weather()
+            weather = self._owm.weather_at_place(place).get_weather()
         else:
             forecast = self._owm.daily_forecast(place)
-            return forecast.get_weather_at(when)
+            weather = forecast.get_weather_at(when)
+
+        logging.debug("weather has been retrieved successfully")
+
+        return weather

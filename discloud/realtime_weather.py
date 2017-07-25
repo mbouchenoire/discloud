@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import configparser
 import discord
@@ -33,7 +34,10 @@ class OwmRealTimeWeatherFactory(RealTimeWeatherFactory):
 
         google_icon_code = config["icons"][str(weather_code)]
 
-        f = open("images/google/{}.png".format(google_icon_code), "rb")
+        file_path = "images/google/{}.png".format(google_icon_code)
+        logging.debug("image file used for the bot profile avatar: " + file_path)
+
+        f = open(file_path, "rb")
 
         try:
             avatar_bytes = f.read()
@@ -73,6 +77,8 @@ class RealTimeWeatherService(object):
 
         logging.info("updating discloud profile presence...")
         await self._discord_client.change_presence(game=discord.Game(name=realtime_weather.description))
+
+        await asyncio.sleep(1)  # to prevent discord rate limit
 
         logging.info("updating discloud profile avatar...")
         await self._discord_client.edit_profile(password=None, avatar=realtime_weather.avatar_bytes)
