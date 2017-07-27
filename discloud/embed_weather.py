@@ -51,7 +51,12 @@ class OwmEmbedWeatherFactory(EmbedWeatherFactory):
         self._temperature_settings = temperature_settings
 
     def create_embed_weather(self) -> discord.Embed:
-        weather = self._owm_weather_service.get_weather(self._place, self._date)
+        is_today = self._date.date() == datetime.date.today()
+
+        if is_today:
+            weather = self._owm_weather_service.get_weather(self._place)
+        else:
+            weather = self._owm_weather_service.get_forecast(self._place, self._date)
 
         detailed_status = weather.get_detailed_status().title()
         weather_code = weather.get_weather_code()

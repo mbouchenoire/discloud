@@ -7,17 +7,21 @@ class OwmWeatherService(object):
     def __init__(self, pyowm_api_key: str) -> None:
         self._owm = pyowm.OWM(pyowm_api_key)
 
-    def get_weather(self, place: str, when=datetime.datetime.now()):
-        is_today = when.date() == datetime.date.today()
+    def get_weather(self, place: str):
+        logging.debug("retrieving weather: now@" + place + "...")
 
-        logging.debug("retrieving weather: " + str(when) + "@" + place + "...")
-
-        if is_today:
-            weather = self._owm.weather_at_place(place).get_weather()
-        else:
-            forecast = self._owm.daily_forecast(place)
-            weather = forecast.get_weather_at(when)
+        weather = self._owm.weather_at_place(place).get_weather()
 
         logging.debug("weather has been retrieved successfully")
+
+        return weather
+
+    def get_forecast(self, place: str, when: datetime.date):
+        logging.debug("retrieving weather forecast: " + str(when) + "@" + place + "...")
+
+        forecast = self._owm.daily_forecast(place)
+        weather = forecast.get_weather_at(when)
+
+        logging.debug("weather forecast has been retrieved successfully")
 
         return weather

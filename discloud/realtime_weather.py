@@ -75,10 +75,14 @@ class RealTimeWeatherService(object):
 
         realtime_weather = owm_realtime_weather_factory.create_realtime_weather()
 
-        logging.info("updating discloud profile presence...")
-        await self._discord_client.change_presence(game=discord.Game(name=realtime_weather.description))
+        try:
+            logging.info("updating discloud profile presence...")
+            await self._discord_client.change_presence(game=discord.Game(name=realtime_weather.description))
+        except:
+            logging.exception("failed to update discloud profile presence")
 
-        await asyncio.sleep(1)  # to prevent discord rate limit
-
-        logging.info("updating discloud profile avatar...")
-        await self._discord_client.edit_profile(password=None, avatar=realtime_weather.avatar_bytes)
+        try:
+            logging.info("updating discloud profile avatar...")
+            await self._discord_client.edit_profile(password=None, avatar=realtime_weather.avatar_bytes)
+        except:
+            logging.exception("failed to update discloud profile avatar")
