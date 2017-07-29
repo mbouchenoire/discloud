@@ -6,6 +6,25 @@ from weather import Weather, WeatherForecast, WeatherServiceLocator
 
 OWM_CONFIG_PATH = "config/open_weather_map.ini"
 
+SMALL_CHARS = "tifjl1"
+BIG_CHARS = "AMT"
+DOUBLE_CHARS = "W"
+
+
+def get_offset_needed(text: str) -> int:
+    offset = 0
+
+    for c in SMALL_CHARS:
+        offset += text.count(c)
+
+    for c in BIG_CHARS:
+        offset -= text.count(c)
+
+    for c in DOUBLE_CHARS:
+        offset -= text.count(c) * 3
+
+    return offset
+
 
 def get_temperature_suffix(measurement_system: MeasurementSystem) -> str:
     if measurement_system is MeasurementSystem.METRIC:
@@ -24,23 +43,32 @@ def get_wind_speed_suffix(measurement_system: MeasurementSystem) -> str:
 
 
 class SendWeatherDiscordCommand(object):
-    def __init__(self, discord_client: discord.Client, channel: discord.Channel, weather: Weather) -> None:
+    def __init__(self,
+                 discord_client: discord.Client,
+                 channel: discord.Channel,
+                 home_settings: HomeSettings,
+                 weather: Weather) -> None:
         self._discord_client = discord_client
         self._channel = channel
+        self._home_settings = home_settings
         self._weather = weather
 
     async def execute(self) -> None:
         config = configparser.ConfigParser()
         config.read(OWM_CONFIG_PATH)
 
+        is_home = self._home_settings.display_name.upper() == self._weather.location.upper()
+
+        header = "" if is_home else "** -- Weather @ " + self._weather.location.title() + "**: "
         discord_icon_code = config["discord-icons"][str(self._weather.weather_code)]
         temperature_suffix = get_temperature_suffix(self._weather.measurement_system)
         wind_speed_suffix = get_wind_speed_suffix(self._weather.measurement_system)
 
-        msg = ":{}:   {}{}   {}%   {} {}".format(discord_icon_code,
-                                                 round(self._weather.temperature), temperature_suffix,
-                                                 self._weather.humidity,
-                                                 round(self._weather.wind_speed), wind_speed_suffix)
+        msg = "{}:{}:   {}{}   {}%   {}{}".format(header,
+                                                  discord_icon_code,
+                                                  round(self._weather.temperature), temperature_suffix,
+                                                  self._weather.humidity,
+                                                  round(self._weather.wind_speed), wind_speed_suffix)
 
         await self._discord_client.send_message(self._channel, msg)
 
@@ -58,6 +86,15 @@ class SendForecastDiscordCommand(object):
         msg = "**Weather Forecast @ " + self._forecast.weathers[0].location.title() + "**\n\n"
 
         for weather in self._forecast.weathers:
+            week_day = weather.date.strftime("%A")[:3] + "."
+            day = weather.date.strftime("%d")
+            month = weather.date.strftime("%B")[:3] + "."
+            full_date = (week_day + " " + day + " " + month)
+
+            standard_full_date_rjust = 17
+            full_date_rjust = standard_full_date_rjust + get_offset_needed(full_date)
+            full_date = full_date.rjust(full_date_rjust)
+
             discord_icon_code = config["discord-icons"][str(weather.weather_code)]
             temperature_suffix = get_temperature_suffix(weather.measurement_system)
             humidity_suffix = "%"
@@ -67,16 +104,15 @@ class SendForecastDiscordCommand(object):
             str_humidity = str(weather.humidity)
             str_wind_speed = str(round(weather.wind_speed))
 
-            temperature_rjust = 3 + len(temperature_suffix) + str_temperature.count("1")
-            humidity_rjust = 3 + len(humidity_suffix) + str_humidity.count("1")
-            wind_speed_rjust = 3 + 1 + len(wind_speed_suffix) + str_wind_speed.count("1")
+            temperature_rjust = 3 + len(temperature_suffix) + get_offset_needed(str_temperature)
+            humidity_rjust = 3 + len(humidity_suffix) + get_offset_needed(str_humidity)
+            wind_speed_rjust = 3 + 1 + len(wind_speed_suffix) + get_offset_needed(str_wind_speed)
 
-            date = weather.date.strftime("%A %d %B")
-            temperature = (str_temperature + temperature_suffix).rjust(temperature_rjust)
+            temperature = (str_temperature + temperature_suffix).ljust(temperature_rjust)
             humidity = (str_humidity + humidity_suffix).rjust(humidity_rjust)
             wind_speed = (str_wind_speed + wind_speed_suffix).rjust(wind_speed_rjust)
 
-            msg += "{}   :{}:   {}   {}   {}\n".format(date, discord_icon_code, temperature, humidity, wind_speed)
+            msg += "{}   :{}:   {}   {}   {}\n".format(full_date, discord_icon_code, temperature, humidity, wind_speed)
 
         await self._discord_client.send_message(self._channel, msg)
 
@@ -164,7 +200,7 @@ class CommandHandler(object):
     async def handle_weather(self, command) -> None:
         location = await self.__extract_location__(command)
         weather = self._weather_service_locator.get_weather_service().get_weather(location, self._measurement_system)
-        await SendWeatherDiscordCommand(self._discord_client, command.channel, weather).execute()
+        await SendWeatherDiscordCommand(self._discord_client, command.channel, self._home_settings, weather).execute()
 
     async def handle_forecast(self, command) -> None:
         location = await self.__extract_location__(command)
@@ -199,6 +235,7 @@ class WeatherDiscordService(object):
         while not self._discord_client.is_closed:
             weather_service = self._weather_service_locator.get_weather_service()
             weather = weather_service.get_weather(self._home_settings.full_name, self._measurement_system)
+            weather.location = self._home_settings.display_name
             await UpdateWeatherProfileDiscordCommand(self._discord_client, weather).execute()
             await asyncio.sleep(WeatherDiscordService._UPDATE_PROFILE_FREQUENCY)
 

@@ -73,7 +73,9 @@ class OwmWeatherService(WeatherService):
         if measurement_system is MeasurementSystem.METRIC:
             wind_speed = wind_speed * 3.6  # m/s to km/h
 
-        weather = Weather(location, datetime.date.today(), measurement_system,
+        date = datetime.date.fromtimestamp(owm_weather.get_reference_time())
+
+        weather = Weather(location, date, measurement_system,
                           weather_code, temperature, humidity, wind_speed)
 
         return weather
