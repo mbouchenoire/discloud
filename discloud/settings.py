@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import List
 
 
 class MeasurementSystem(Enum):
@@ -13,9 +14,17 @@ class IntegrationSettings(object):
 
 
 class HomeSettings(object):
-    def __init__(self, full_name: str, display_name: str) -> None:
+    def __init__(self,
+                 full_name: str,
+                 display_name: str,
+                 periodic_forecast_channels: List[str],
+                 morning_forecast_time: str,
+                 evening_forecast_time: str) -> None:
         self.full_name = full_name
         self.display_name = display_name
+        self.periodic_forecast_channels = periodic_forecast_channels
+        self.morning_forecast_time = morning_forecast_time
+        self.evening_forecast_time = evening_forecast_time
 
 
 class ApplicationSettings(object):

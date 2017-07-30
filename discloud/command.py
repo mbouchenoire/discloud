@@ -1,3 +1,4 @@
+import datetime
 import logging
 import asyncio
 import configparser
@@ -39,7 +40,7 @@ def get_temperature_suffix(measurement_system: MeasurementSystem) -> str:
 
 def get_wind_speed_suffix(measurement_system: MeasurementSystem) -> str:
     if measurement_system is MeasurementSystem.METRIC:
-        return " km/h"
+        return " kmh"
     elif measurement_system is MeasurementSystem.IMPERIAL:
         return " mph"
 
@@ -235,9 +236,8 @@ class WeatherDiscordService(object):
         self._weather_service_locator = weather_service_locator
         self._discord_client = discord_client
 
-    @staticmethod
-    def __should_send_forecast__(channel: discord.Channel) -> bool:
-        return channel.is_default
+    def __should_send_forecast__(self, channel: discord.Channel) -> bool:
+        return channel.name in self._home_settings.periodic_forecast_channels
 
     async def update_profile(self):
         await self._discord_client.wait_until_ready()
@@ -273,14 +273,24 @@ class WeatherDiscordService(object):
         logging.warning("discord connection has closed")
 
     async def send_home_forecast(self) -> None:
-        def __periodically_send_home_forecast__():
-            logging.info("sending periodic weather forecast...")
+        def __periodically_send_morning_forecast__():
+            __send_home_forecast__("sending periodic morning weather forecast...",
+                                   lambda weathers: list(filter(lambda w: w.date == datetime.date.today(), weathers)))
+
+        def __periodically_send_evening_forecast__():
+            __send_home_forecast__("sending periodic evening weather forecast...",
+                                   lambda weathers: list(filter(lambda w: w.date != datetime.date.today(), weathers)))
+
+        def __send_home_forecast__(logging_header, weathers_predicate) -> None:
+            logging.info(logging_header)
 
             weather_service = self._weather_service_locator.get_weather_service()
             forecast = weather_service.get_forecast(self._home_settings.full_name, self._measurement_system)
 
+            forecast.weathers = weathers_predicate(forecast.weathers)
+
             for channel in self._discord_client.get_all_channels():
-                if WeatherDiscordService.__should_send_forecast__(channel):
+                if self.__should_send_forecast__(channel):
                     try:
                         asyncio.get_event_loop().run_until_complete(
                             SendForecastDiscordCommand(self._discord_client, channel, forecast).execute())
@@ -289,7 +299,15 @@ class WeatherDiscordService(object):
                         msg = msg_template.format(self._home_settings.full_name, channel.server.name, channel.name)
                         logging.exception(msg)
 
-        schedule.every().day.at("21:00").do(__periodically_send_home_forecast__)
+        schedule.every(10).seconds.do(__periodically_send_morning_forecast__)
+
+        if self._home_settings.morning_forecast_time is not None:
+            schedule.every().day.at(self._home_settings.morning_forecast_time)\
+                .do(__periodically_send_morning_forecast__)
+
+        if self._home_settings.evening_forecast_time is not None:
+            schedule.every().day.at(self._home_settings.evening_forecast_time)\
+                .do(__periodically_send_evening_forecast__)
 
         while True:
             schedule.run_pending()

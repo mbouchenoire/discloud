@@ -93,8 +93,6 @@ class OwmWeatherService(WeatherService):
         weathers = [OwmWeatherService.__build_weather__(location, weather, measurement_system)
                     for weather in forecast.get_forecast()]
 
-        weathers = list(filter(lambda w: w.date != datetime.date.today(), weathers))
-
         return WeatherForecast(weathers)
 
 
