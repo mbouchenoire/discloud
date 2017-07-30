@@ -140,7 +140,7 @@ class UpdateWeatherPresenceDiscordCommand(object):
             spaces = " " * (maximum_presence_length - len(temperature_text) - len(promotion_text))
             msg = "{}{}{}".format(temperature_text, spaces, promotion_text)
         else:
-            msg = "{}  {}%  {}".format(temperature_text, humidity_text, wind_speed_text)
+            msg = "{}  {}  {}".format(temperature_text, humidity_text, wind_speed_text)
 
         await self._discord_client.change_presence(game=discord.Game(name=msg))
 
