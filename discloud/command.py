@@ -1,3 +1,4 @@
+import logging
 import asyncio
 import configparser
 import discord
@@ -143,6 +144,8 @@ class UpdateWeatherProfileDiscordCommand(object):
 
         file_path = "images/google/{}.png".format(google_icon_code)
 
+        logging.debug("image to be used as the bot avatar: " + file_path)
+
         f = open(file_path, "rb")
 
         try:
@@ -198,11 +201,13 @@ class CommandHandler(object):
         return location
 
     async def handle_weather(self, command) -> None:
+        logging.info("handling weather command...")
         location = await self.__extract_location__(command)
         weather = self._weather_service_locator.get_weather_service().get_weather(location, self._measurement_system)
         await SendWeatherDiscordCommand(self._discord_client, command.channel, self._home_settings, weather).execute()
 
     async def handle_forecast(self, command) -> None:
+        logging.info("handling forecast command...")
         location = await self.__extract_location__(command)
         forecast = self._weather_service_locator.get_weather_service().get_forecast(location, self._measurement_system)
         await SendForecastDiscordCommand(self._discord_client, command.channel, forecast).execute()
@@ -233,17 +238,31 @@ class WeatherDiscordService(object):
         await self._discord_client.wait_until_ready()
 
         while not self._discord_client.is_closed:
-            weather_service = self._weather_service_locator.get_weather_service()
-            weather = weather_service.get_weather(self._home_settings.full_name, self._measurement_system)
-            weather.location = self._home_settings.display_name
-            await UpdateWeatherProfileDiscordCommand(self._discord_client, weather).execute()
-            await asyncio.sleep(WeatherDiscordService._UPDATE_PROFILE_FREQUENCY)
+            try:
+                logging.info("updating discord bot profile...")
+                weather_service = self._weather_service_locator.get_weather_service()
+                weather = weather_service.get_weather(self._home_settings.full_name, self._measurement_system)
+                weather.location = self._home_settings.display_name
+                await UpdateWeatherProfileDiscordCommand(self._discord_client, weather).execute()
+                logging.info("discord bot profile updated successfully")
+                await asyncio.sleep(WeatherDiscordService._UPDATE_PROFILE_FREQUENCY)
+            except discord.HTTPException:
+                logging.exception("discord bot profile update failed")
+
+        logging.warning("discord connection has closed")
 
     async def update_presence(self):
         await self._discord_client.wait_until_ready()
 
         while not self._discord_client.is_closed:
-            weather_service = self._weather_service_locator.get_weather_service()
-            weather = weather_service.get_weather(self._home_settings.full_name, self._measurement_system)
-            await UpdateWeatherPresenceDiscordCommand(self._discord_client, weather).execute()
-            await asyncio.sleep(WeatherDiscordService._UPDATE_PRESENCE_FREQUENCY)
+            try:
+                logging.info("updating discord bot presence...")
+                weather_service = self._weather_service_locator.get_weather_service()
+                weather = weather_service.get_weather(self._home_settings.full_name, self._measurement_system)
+                await UpdateWeatherPresenceDiscordCommand(self._discord_client, weather).execute()
+                logging.info("discord bot presence updated successfully")
+                await asyncio.sleep(WeatherDiscordService._UPDATE_PRESENCE_FREQUENCY)
+            except discord.HTTPException:
+                logging.exception("discord bot presence update failed")
+
+        logging.warning("discord connection has closed")

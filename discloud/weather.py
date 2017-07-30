@@ -1,4 +1,5 @@
 import datetime
+import logging
 import pyowm
 from typing import List
 from settings import MeasurementSystem
@@ -81,10 +82,12 @@ class OwmWeatherService(WeatherService):
         return weather
 
     def get_weather(self, location: str, measurement_system: MeasurementSystem) -> Weather:
+        logging.debug("retrieving current weather @{} using Open Weather Map...".format(location))
         owm_weather = self._owm.weather_at_place(location).get_weather()
         return OwmWeatherService.__build_weather__(location, owm_weather, measurement_system)
 
     def get_forecast(self, location: str, measurement_system: MeasurementSystem) -> WeatherForecast:
+        logging.debug("retrieving weather forecast @{} using Open Weather Map...".format(location))
         forecast = self._owm.daily_forecast(location)
         weathers = [OwmWeatherService.__build_weather__(location, weather, measurement_system)
                     for weather in forecast.get_forecast()]
