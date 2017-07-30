@@ -12,10 +12,12 @@ class Application(object):
         discord_client = discord.Client()
 
         weather_service_locator = WeatherServiceLocator(self._settings.integration_settings.open_weather_map_api_key)
+
         command_handler = CommandHandler(self._settings.measurement_system,
                                          self._settings.home_settings,
                                          weather_service_locator,
                                          discord_client)
+
         weather_discord_service = WeatherDiscordService(self._settings.measurement_system,
                                                         self._settings.home_settings,
                                                         weather_service_locator,

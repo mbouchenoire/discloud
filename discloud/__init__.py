@@ -22,7 +22,7 @@ DISCORD_BOT_TOKEN = CONFIG["integration"]["discord_bot_token"]
 OPEN_WEATHER_MAP_API_KEY = CONFIG["integration"]["open_weather_map_api_key"]
 HOME_FULL_NAME = CONFIG["home"]["full_name"]
 HOME_DISPLAY_NAME = CONFIG["home"]["display_name"]
-STR_PERIODIC_FORECAST_CHANNELS = CONFIG["home"]["periodic_forecast_channel"]
+STR_PERIODIC_FORECAST_CHANNELS = CONFIG["home"]["periodic_forecast_channels"]
 MORNING_FORECAST_TIME = CONFIG["home"]["morning_forecast_time"]
 EVENING_FORECAST_TIME = CONFIG["home"]["evening_forecast_time"]
 

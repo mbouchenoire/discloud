@@ -239,7 +239,7 @@ class WeatherDiscordService(object):
     def __should_send_forecast__(self, channel: discord.Channel) -> bool:
         return channel.name in self._home_settings.periodic_forecast_channels
 
-    async def update_profile(self):
+    async def update_profile(self) -> None:
         await self._discord_client.wait_until_ready()
 
         while not self._discord_client.is_closed:
@@ -256,7 +256,7 @@ class WeatherDiscordService(object):
 
         logging.warning("discord connection has closed")
 
-    async def update_presence(self):
+    async def update_presence(self) -> None:
         await self._discord_client.wait_until_ready()
 
         while not self._discord_client.is_closed:
@@ -273,15 +273,15 @@ class WeatherDiscordService(object):
         logging.warning("discord connection has closed")
 
     async def send_home_forecast(self) -> None:
-        def __periodically_send_morning_forecast__():
+        def __periodically_send_morning_forecast__() -> None:
             __send_home_forecast__("sending periodic morning weather forecast...",
                                    lambda weathers: list(filter(lambda w: w.date == datetime.date.today(), weathers)))
 
-        def __periodically_send_evening_forecast__():
+        def __periodically_send_evening_forecast__() -> None:
             __send_home_forecast__("sending periodic evening weather forecast...",
                                    lambda weathers: list(filter(lambda w: w.date != datetime.date.today(), weathers)))
 
-        def __send_home_forecast__(logging_header, weathers_predicate) -> None:
+        def __send_home_forecast__(logging_header: str, weathers_predicate) -> None:
             logging.info(logging_header)
 
             weather_service = self._weather_service_locator.get_weather_service()
@@ -298,8 +298,6 @@ class WeatherDiscordService(object):
                         msg_template = "failed to send home weather forecast (@{}) to channel {}.{}"
                         msg = msg_template.format(self._home_settings.full_name, channel.server.name, channel.name)
                         logging.exception(msg)
-
-        schedule.every(10).seconds.do(__periodically_send_morning_forecast__)
 
         if self._home_settings.morning_forecast_time is not None:
             schedule.every().day.at(self._home_settings.morning_forecast_time)\
