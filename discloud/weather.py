@@ -89,8 +89,12 @@ class OwmWeatherService(WeatherService):
     def get_forecast(self, location: str, measurement_system: MeasurementSystem) -> WeatherForecast:
         logging.debug("retrieving weather forecast @{} using Open Weather Map...".format(location))
         forecast = self._owm.daily_forecast(location)
+
         weathers = [OwmWeatherService.__build_weather__(location, weather, measurement_system)
                     for weather in forecast.get_forecast()]
+
+        weathers = list(filter(lambda w: w.date != datetime.date.today(), weathers))
+
         return WeatherForecast(weathers)
 
 

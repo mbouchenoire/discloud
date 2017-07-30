@@ -25,6 +25,7 @@ class Application(object):
         async def on_message(message) -> None:
             await command_handler.handle(message)
 
+        discord_client.loop.create_task(weather_discord_service.send_home_forecast())
         discord_client.loop.create_task(weather_discord_service.update_profile())
         discord_client.loop.create_task(weather_discord_service.update_presence())
         discord_client.run(self._settings.integration_settings.discord_bot_token)

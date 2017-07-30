@@ -1,6 +1,7 @@
 import logging
 import asyncio
 import configparser
+import schedule
 import discord
 from settings import MeasurementSystem, HomeSettings
 from weather import Weather, WeatherForecast, WeatherServiceLocator
@@ -234,6 +235,10 @@ class WeatherDiscordService(object):
         self._weather_service_locator = weather_service_locator
         self._discord_client = discord_client
 
+    @staticmethod
+    def __should_send_forecast__(channel: discord.Channel) -> bool:
+        return channel.is_default
+
     async def update_profile(self):
         await self._discord_client.wait_until_ready()
 
@@ -266,3 +271,26 @@ class WeatherDiscordService(object):
                 logging.exception("discord bot presence update failed")
 
         logging.warning("discord connection has closed")
+
+    async def send_home_forecast(self) -> None:
+        def __periodically_send_home_forecast__():
+            logging.info("sending periodic weather forecast...")
+
+            weather_service = self._weather_service_locator.get_weather_service()
+            forecast = weather_service.get_forecast(self._home_settings.full_name, self._measurement_system)
+
+            for channel in self._discord_client.get_all_channels():
+                if WeatherDiscordService.__should_send_forecast__(channel):
+                    try:
+                        asyncio.get_event_loop().run_until_complete(
+                            SendForecastDiscordCommand(self._discord_client, channel, forecast).execute())
+                    except discord.HTTPException:
+                        msg_template = "failed to send home weather forecast (@{}) to channel {}.{}"
+                        msg = msg_template.format(self._home_settings.full_name, channel.server.name, channel.name)
+                        logging.exception(msg)
+
+        schedule.every().day.at("21:00").do(__periodically_send_home_forecast__)
+
+        while True:
+            schedule.run_pending()
+            await asyncio.sleep(1)
