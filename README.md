@@ -18,7 +18,8 @@ The weather on your discord server.
         4. `sudo python3 discloud/__ini__.py &`
     - using Docker :
         1. [install Docker](https://docs.docker.com/engine/installation/)
-        3. `cd /etc/discloud`
-        2. if the bot is ***not*** running on an ARM architecture (e.g. Raspberry PI), replace `FROM arm32v7/python:3` by `FROM python:3` in the `Dockerfile`
-        3. build the Docker image : `sudo docker build -t discloud .`
+        2. `cd /etc/discloud`
+        3. build the Docker image :
+           - on a standard x86 architecture : `sudo docker build -t discloud .`
+           - on an ARM architecture : `sudo docker build -t discloud -f Dockerfile.arm`
         4. run the Docker container : `sudo docker run -dit discloud`
