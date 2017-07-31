@@ -29,9 +29,11 @@ class HomeSettings(object):
 
 class ApplicationSettings(object):
     def __init__(self,
+                 logging_level: int,
                  measurement_system: MeasurementSystem,
                  integration_settings: IntegrationSettings,
                  home_settings: HomeSettings) -> None:
+        self.logging_level = logging_level
         self.measurement_system = measurement_system
         self.integration_settings = integration_settings
         self.home_settings = home_settings

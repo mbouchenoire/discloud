@@ -1,42 +1,116 @@
+import os
+import sys
 import logging
-import configparser
+from typing import List
 from settings import MeasurementSystem, IntegrationSettings, HomeSettings, ApplicationSettings
 from main import Application
 
-CONFIG = configparser.ConfigParser()
-CONFIG.read("config/application.ini")
 
-LOGGING_LEVEL_STR = CONFIG["global"]["logging_level"]
+class ConfigurationFactory(object):
+    _LOGGING_LEVELS = {"critical": logging.DEBUG,
+                       "fatal": logging.FATAL,
+                       "error": logging.INFO,
+                       "warning": logging.WARNING,
+                       "warn": logging.WARN,
+                       "info": logging.ERROR,
+                       "debug": logging.DEBUG}
 
-if LOGGING_LEVEL_STR == "debug":
-    logging.basicConfig(level=logging.DEBUG)
-elif LOGGING_LEVEL_STR == "error":
-    logging.basicConfig(level=logging.ERROR)
-elif LOGGING_LEVEL_STR == "info":
-    logging.basicConfig(level=logging.INFO)
-else:
-    raise ValueError("logging level must be debug/error/info")
+    _MEASUREMENT_SYSTEMS = {"metric": MeasurementSystem.METRIC,
+                            "imperial": MeasurementSystem.IMPERIAL}
 
-STR_MEASUREMENT_SYSTEM = CONFIG["global"]["measurement_system"]
-DISCORD_BOT_TOKEN = CONFIG["integration"]["discord_bot_token"]
-OPEN_WEATHER_MAP_API_KEY = CONFIG["integration"]["open_weather_map_api_key"]
-HOME_FULL_NAME = CONFIG["home"]["full_name"]
-HOME_DISPLAY_NAME = CONFIG["home"]["display_name"]
-STR_PERIODIC_FORECAST_CHANNELS = CONFIG["home"]["periodic_forecast_channels"]
-MORNING_FORECAST_TIME = CONFIG["home"]["morning_forecast_time"]
-EVENING_FORECAST_TIME = CONFIG["home"]["evening_forecast_time"]
+    _DEFAULT_LOGGING_LEVEL = "info"
+    _DEFAULT_MEASUREMENT_SYSTEM = "metric"
+    _DEFAULT_CHANNELS = "general,weather"
+    _DEFAULT_MORNING_FORECAST_TIME = "8:00"
+    _DEFAULT_EVENING_FORECAST_TIME = "20:00"
 
-MEASUREMENT_SYSTEM = MeasurementSystem.METRIC if STR_MEASUREMENT_SYSTEM == "metric" else MeasurementSystem.IMPERIAL
-PERIODIC_FORECAST_CHANNELS = STR_PERIODIC_FORECAST_CHANNELS.split(",")
+    def __init__(self):
+        self.is_configuration_valid = True
 
-INTEGRATION_SETTINGS = IntegrationSettings(DISCORD_BOT_TOKEN, OPEN_WEATHER_MAP_API_KEY)
+    @staticmethod
+    def __parse_array__(array_str: str) -> List[str]:
+        return array_str.split(",")
 
-HOME_SETTINGS = HomeSettings(HOME_FULL_NAME,
-                             HOME_DISPLAY_NAME,
-                             PERIODIC_FORECAST_CHANNELS,
-                             MORNING_FORECAST_TIME,
-                             EVENING_FORECAST_TIME)
+    def __abort_start__(self, message: str) -> None:
+        self.is_configuration_valid = False
+        logging.error(message)
+        return None
 
-APPLICATION_SETTINGS = ApplicationSettings(MEASUREMENT_SYSTEM, INTEGRATION_SETTINGS, HOME_SETTINGS)
+    def __parse_dict__(self, key: str, value: str, reference_dict: dict):
+        if value not in reference_dict:
+            valid_values = ",".join(reference_dict.keys())
+            msg_template = "invalid value '{}' for environment variable '{}', valid values are: {}"
+            return self.__abort_start__(msg_template.format(value, key, valid_values))
 
-Application(APPLICATION_SETTINGS).run()
+        return reference_dict[value]
+
+    def __read_env_variable__(self, key: str, default_value: str) -> str:
+        try:
+            return os.environ[key]
+        except KeyError:
+            if default_value:
+                msg_template = "optional environment variable '{}' is not defined, default value '{}' will be used"
+                logging.info(msg_template.format(key, default_value))
+                return default_value
+            else:
+                msg = "required environment variable '{}' is not defined, the bot will NOT start".format(key)
+                return self.__abort_start__(msg)
+
+    def create(self) -> ApplicationSettings:
+        logging_level_str = self.__read_env_variable__("LOGGING_LEVEL",
+                                                       ConfigurationFactory._DEFAULT_LOGGING_LEVEL)
+
+        logging_level = self.__parse_dict__("LOGGING_LEVEL",
+                                            logging_level_str,
+                                            ConfigurationFactory._LOGGING_LEVELS)
+
+        measurement_system_str = self.__read_env_variable__("MEASUREMENT_SYSTEM",
+                                                            ConfigurationFactory._DEFAULT_MEASUREMENT_SYSTEM)
+
+        measurement_system = self.__parse_dict__("MEASUREMENT_SYSTEM",
+                                                 measurement_system_str,
+                                                 ConfigurationFactory._MEASUREMENT_SYSTEMS)
+
+        discord_bot_token = self.__read_env_variable__("DISCORD_BOT_TOKEN", None)
+        open_weather_map_api_key = self.__read_env_variable__("OPEN_WEATHER_MAP_API_KEY", None)
+        home_full_name = self.__read_env_variable__("HOME_FULL_NAME", None)
+        home_display_name = self.__read_env_variable__("HOME_DISPLAY_NAME", home_full_name)
+
+        periodic_forecast_channels_str = self.__read_env_variable__("PERIODIC_FORECAST_CHANNELS",
+                                                                    ConfigurationFactory._DEFAULT_CHANNELS)
+
+        periodic_forecast_channels = ConfigurationFactory.__parse_array__(periodic_forecast_channels_str)
+
+        morning_forecast_time = self.__read_env_variable__("MORNING_FORECAST_TIME",
+                                                           ConfigurationFactory._DEFAULT_MORNING_FORECAST_TIME)
+
+        evening_forecast_time = self.__read_env_variable__("EVENING_FORECAST_TIME",
+                                                           ConfigurationFactory._DEFAULT_EVENING_FORECAST_TIME)
+
+        integration_settings = IntegrationSettings(discord_bot_token,
+                                                   open_weather_map_api_key)
+
+        home_settings = HomeSettings(home_full_name,
+                                     home_display_name,
+                                     periodic_forecast_channels,
+                                     morning_forecast_time,
+                                     evening_forecast_time)
+
+        application_settings = ApplicationSettings(logging_level,
+                                                   measurement_system,
+                                                   integration_settings,
+                                                   home_settings)
+
+        return application_settings
+
+logging.basicConfig(level=logging.INFO)
+
+configuration_factory = ConfigurationFactory()
+configuration = configuration_factory.create()
+
+if not configuration_factory.is_configuration_valid:
+    sys.exit()
+
+logging.basicConfig(level=configuration.logging_level)
+
+Application(configuration).run()

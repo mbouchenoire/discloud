@@ -262,7 +262,7 @@ class WeatherDiscordService(object):
 
         while not self._discord_client.is_closed:
             try:
-                logging.info("updating discord bot profile...")
+                logging.debug("updating discord bot profile...")
                 weather_service = self._weather_service_locator.get_weather_service()
                 weather = weather_service.get_weather(self._home_settings.full_name, self._measurement_system)
                 weather.location = self._home_settings.display_name
@@ -281,7 +281,7 @@ class WeatherDiscordService(object):
 
         while not self._discord_client.is_closed:
             try:
-                logging.info("updating discord bot presence...")
+                logging.debug("updating discord bot presence...")
                 weather_service = self._weather_service_locator.get_weather_service()
                 weather = weather_service.get_weather(self._home_settings.full_name, self._measurement_system)
                 await UpdateWeatherPresenceDiscordCommand(self._discord_client, weather, should_promote).execute()
@@ -303,7 +303,7 @@ class WeatherDiscordService(object):
                                    lambda weathers: list(filter(lambda w: w.date != datetime.date.today(), weathers)))
 
         def __send_home_forecast__(logging_header: str, weathers_predicate) -> None:
-            logging.info(logging_header)
+            logging.debug(logging_header)
 
             weather_service = self._weather_service_locator.get_weather_service()
             forecast = weather_service.get_forecast(self._home_settings.full_name, self._measurement_system)
