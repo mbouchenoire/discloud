@@ -219,7 +219,33 @@ class CommandHandler(object):
         self._weather_service_locator = weather_service_locator
         self._discord_client = discord_client
 
-    async def __extract_location__(self, command) -> str:
+    @staticmethod
+    def __is_discloud_bot__(member: discord.Member) -> bool:
+        if member.game is None:
+            return False
+
+        bot_game_probable_strings = ["°C", "°F", "%", "mph", "kmh", "discloud"]
+        bot_strings_threshold = 2
+
+        member_found_strings = 0
+
+        for probable_string in bot_game_probable_strings:
+            if probable_string in member.game.name:
+                member_found_strings += 1
+
+        return member_found_strings >= bot_strings_threshold
+
+    def __has_handling_priority__(self, command) -> bool:
+        # Currently, the bot with the lowest ID detains the handling priority
+
+        for member in command.channel.server.members:
+            if CommandHandler.__is_discloud_bot__(member) and member.status is discord.Status.online:
+                if member.id < self._discord_client.user.id:
+                    return False
+
+        return True
+
+    def __extract_location__(self, command) -> str:
         parts = command.content.replace("@ ", "@").split(" ")
 
         if len(parts) >= 2:
@@ -232,13 +258,13 @@ class CommandHandler(object):
 
     async def handle_weather(self, command) -> None:
         logging.info("handling weather command...")
-        location = await self.__extract_location__(command)
+        location = self.__extract_location__(command)
         weather = self._weather_service_locator.get_weather_service().get_weather(location, self._measurement_system)
         await SendWeatherDiscordCommand(self._discord_client, command.channel, self._home_settings, weather).execute()
 
     async def handle_forecast(self, command) -> None:
         logging.info("handling forecast command...")
-        location = await self.__extract_location__(command)
+        location = self.__extract_location__(command)
         forecast = self._weather_service_locator.get_weather_service().get_forecast(location, self._measurement_system)
         await SendForecastDiscordCommand(self._discord_client, command.channel, forecast).execute()
 
@@ -247,6 +273,9 @@ class CommandHandler(object):
         await self._discord_client.send_message(command.channel, "http://github.com/mbouchenoire/discloud")
 
     async def handle(self, command) -> None:
+        if not self.__has_handling_priority__(command):
+            return None
+
         if any(command.content.startswith(prefix) for prefix in CommandHandler._VALID_WEATHER_PREFIXES):
             return await self.handle_weather(command)
 
