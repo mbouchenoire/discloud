@@ -30,8 +30,7 @@ class Application(object):
 
         weather_service_locator = WeatherServiceLocator(self._settings.integration_settings.open_weather_map_api_key)
 
-        command_handler = CommandHandler(self._settings.measurement_system,
-                                         self._settings.home_settings,
+        command_handler = CommandHandler(self._settings,
                                          weather_service_locator,
                                          discord_client)
 

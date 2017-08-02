@@ -24,6 +24,12 @@ class MeasurementSystem(Enum):
     IMPERIAL = "imperial"
 
 
+class ConcurrencyPriority(Enum):
+    ALWAYS = "always"
+    AUTO = "auto"
+    NEVER = "never"
+
+
 class IntegrationSettings(object):
     def __init__(self, discord_bot_token: str, open_weather_map_api_key: str) -> None:
         self.discord_bot_token = discord_bot_token
@@ -48,9 +54,11 @@ class ApplicationSettings(object):
     def __init__(self,
                  logging_level: int,
                  measurement_system: MeasurementSystem,
+                 concurrency_priority: ConcurrencyPriority,
                  integration_settings: IntegrationSettings,
                  home_settings: HomeSettings) -> None:
         self.logging_level = logging_level
         self.measurement_system = measurement_system
+        self.concurrency_priority = concurrency_priority
         self.integration_settings = integration_settings
         self.home_settings = home_settings

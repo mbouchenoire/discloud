@@ -21,7 +21,7 @@ import asyncio
 import configparser
 import schedule
 import discord
-from settings import MeasurementSystem, HomeSettings
+from settings import MeasurementSystem, ConcurrencyPriority, HomeSettings, ApplicationSettings
 from weather import Weather, WeatherForecast, WeatherServiceLocator
 
 OWM_CONFIG_PATH = "config/open_weather_map.ini"
@@ -210,12 +210,10 @@ class CommandHandler(object):
     _VALID_HELP_PREFIXES = ["!discloud", "discloud", "!bots", "!bot", "weatherbot", "botweather"]
 
     def __init__(self,
-                 measurement_system: MeasurementSystem,
-                 home_settings: HomeSettings,
+                 application_settings: ApplicationSettings,
                  weather_service_locator: WeatherServiceLocator,
                  discord_client: discord.Client) -> None:
-        self._measurement_system = measurement_system
-        self._home_settings = home_settings
+        self._application_settings = application_settings
         self._weather_service_locator = weather_service_locator
         self._discord_client = discord_client
 
@@ -235,8 +233,17 @@ class CommandHandler(object):
 
         return member_found_strings >= bot_strings_threshold
 
+    @staticmethod
+    def __is_parametized_command__(command) -> bool:
+        return len(command.content.split(" ")) > 1
+
     def __has_handling_priority__(self, command) -> bool:
         # Currently, the bot with the lowest ID detains the handling priority
+
+        if self._application_settings.concurrency_priority is ConcurrencyPriority.ALWAYS:
+            return True
+        elif self._application_settings.concurrency_priority is ConcurrencyPriority.NEVER:
+            return False
 
         for member in command.channel.server.members:
             if CommandHandler.__is_discloud_bot__(member) and member.status is discord.Status.online:
@@ -246,26 +253,34 @@ class CommandHandler(object):
         return True
 
     def __extract_location__(self, command) -> str:
-        parts = command.content.replace("@ ", "@").split(" ")
+        content = command.content.replace("@ ", "@").replace("@", "")
 
-        if len(parts) >= 2:
-            location = parts[1]
-            location = location.replace("@", "")
+        for prefix in CommandHandler._VALID_WEATHER_PREFIXES:
+            content = content.replace(prefix, "", 1)
+
+        for prefix in CommandHandler._VALID_FORECAST_PREFIXES:
+            content = content.replace(prefix, "", 1)
+
+        if content is None or content.strip() == "":
+            return self._application_settings.home_settings.full_name
         else:
-            location = self._home_settings.full_name
-
-        return location
+            return content
 
     async def handle_weather(self, command) -> None:
         logging.info("handling weather command...")
         location = self.__extract_location__(command)
-        weather = self._weather_service_locator.get_weather_service().get_weather(location, self._measurement_system)
-        await SendWeatherDiscordCommand(self._discord_client, command.channel, self._home_settings, weather).execute()
+        weather_service = self._weather_service_locator.get_weather_service()
+        weather = weather_service.get_weather(location, self._application_settings.measurement_system)
+        await SendWeatherDiscordCommand(self._discord_client,
+                                        command.channel,
+                                        self._application_settings.home_settings,
+                                        weather).execute()
 
     async def handle_forecast(self, command) -> None:
         logging.info("handling forecast command...")
         location = self.__extract_location__(command)
-        forecast = self._weather_service_locator.get_weather_service().get_forecast(location, self._measurement_system)
+        weather_service = self._weather_service_locator.get_weather_service()
+        forecast = weather_service.get_forecast(location, self._application_settings.measurement_system)
         await SendForecastDiscordCommand(self._discord_client, command.channel, forecast).execute()
 
     async def handle_help(self, command) -> None:
@@ -273,17 +288,17 @@ class CommandHandler(object):
         await self._discord_client.send_message(command.channel, "http://github.com/mbouchenoire/discloud")
 
     async def handle(self, command) -> None:
-        if not self.__has_handling_priority__(command):
-            return None
-
         if any(command.content.startswith(prefix) for prefix in CommandHandler._VALID_WEATHER_PREFIXES):
-            return await self.handle_weather(command)
+            if not CommandHandler.__is_parametized_command__(command) or self.__has_handling_priority__(command):
+                return await self.handle_weather(command)
 
         if any(command.content.startswith(prefix) for prefix in CommandHandler._VALID_FORECAST_PREFIXES):
-            return await self.handle_forecast(command)
+            if not CommandHandler.__is_parametized_command__(command) or self.__has_handling_priority__(command):
+                return await self.handle_forecast(command)
 
         if any(command.content.startswith(prefix) for prefix in CommandHandler._VALID_HELP_PREFIXES):
-            return await self.handle_help(command)
+            if self.__has_handling_priority__(command):
+                return await self.handle_help(command)
 
 
 class WeatherDiscordService(object):

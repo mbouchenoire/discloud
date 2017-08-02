@@ -19,7 +19,7 @@ import os
 import sys
 import logging
 from typing import List
-from settings import MeasurementSystem, IntegrationSettings, HomeSettings, ApplicationSettings
+from settings import MeasurementSystem, ConcurrencyPriority, IntegrationSettings, HomeSettings, ApplicationSettings
 from main import Application
 
 
@@ -32,11 +32,16 @@ class ConfigurationFactory(object):
                        "info": logging.ERROR,
                        "debug": logging.DEBUG}
 
+    _CONCURRENCY_PRIORITIES = {"always": ConcurrencyPriority.ALWAYS,
+                               "auto": ConcurrencyPriority.AUTO,
+                               "never": ConcurrencyPriority.NEVER}
+
     _MEASUREMENT_SYSTEMS = {"metric": MeasurementSystem.METRIC,
                             "imperial": MeasurementSystem.IMPERIAL}
 
     _DEFAULT_LOGGING_LEVEL = "info"
     _DEFAULT_MEASUREMENT_SYSTEM = "metric"
+    _DEFAULT_CONCURRENCY_PRIORITY = "auto"
     _DEFAULT_CHANNELS = "general,weather"
     _DEFAULT_MORNING_FORECAST_TIME = "8:00"
     _DEFAULT_EVENING_FORECAST_TIME = "20:00"
@@ -59,7 +64,7 @@ class ConfigurationFactory(object):
             msg_template = "invalid value '{}' for environment variable '{}', valid values are: {}"
             return self.__abort_start__(msg_template.format(value, key, valid_values))
 
-        return reference_dict[value]
+        return reference_dict[value.lower()]
 
     def __read_env_variable__(self, key: str, default_value: str) -> str:
         try:
@@ -88,6 +93,13 @@ class ConfigurationFactory(object):
                                                  measurement_system_str,
                                                  ConfigurationFactory._MEASUREMENT_SYSTEMS)
 
+        concurrency_priority_str = self.__read_env_variable__("CONCURRENCY_PRIORITY",
+                                                              ConfigurationFactory._DEFAULT_CONCURRENCY_PRIORITY)
+
+        concurrency_priority = self.__parse_dict__("CONCURRENCY_PRIORITY",
+                                                   concurrency_priority_str,
+                                                   ConfigurationFactory._CONCURRENCY_PRIORITIES)
+
         discord_bot_token = self.__read_env_variable__("DISCORD_BOT_TOKEN", None)
         open_weather_map_api_key = self.__read_env_variable__("OPEN_WEATHER_MAP_API_KEY", None)
         home_full_name = self.__read_env_variable__("HOME_FULL_NAME", None)
@@ -115,6 +127,7 @@ class ConfigurationFactory(object):
 
         application_settings = ApplicationSettings(logging_level,
                                                    measurement_system,
+                                                   concurrency_priority,
                                                    integration_settings,
                                                    home_settings)
 
@@ -126,7 +139,8 @@ configuration_factory = ConfigurationFactory()
 configuration = configuration_factory.create()
 
 if not configuration_factory.is_configuration_valid:
-    sys.exit()
+    logging.error("the bot configuration is invalid, the application will NOT start")
+    sys.exit(1)
 
 logging.basicConfig(level=configuration.logging_level)
 

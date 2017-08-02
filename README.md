@@ -51,6 +51,7 @@ The discloud bot depends on multiple environment variables that can be configure
 | --- | --- | --- |
 | `LOGGING_LEVEL` | [`critical` &#124; `error` &#124; `info` &#124; `debug`] | Optional (default: `info`) |
 | `MEASUREMENT_SYSTEM` | [`metric` &#124; `imperial`] | Optional (default: `metric`) |
+| `CONCURRENCY_PRIORITY` | [`always` &#124; `auto` &#124; `never`], defines the responding behavior of this discloud instance when multiple discloud instances are running on the same Discord server. The `auto` value gives priority to the discloud bot with the lowest discord ID | Optional (default: `auto`) |
 | `DISCORD_BOT_TOKEN` | See [here]() | **Required** |
 | `OPEN_WEATHER_MAP_API_KEY` | See [here]() | **Required** |
 | `HOME_FULL_NAME` | The full name of the home location, in order to handle different locations with the same name (e.g. `Paris,fr`) | **Required** |
