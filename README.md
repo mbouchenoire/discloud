@@ -49,15 +49,16 @@ The discloud bot depends on multiple environment variables that can be configure
 
 | Environment variable | Value | Comment |
 | --- | --- | --- |
-| `LOGGING_LEVEL` | [`critical` &#124; `error` &#124; `info` &#124; `debug`] | Optional (default: `info`) |
-| `MEASUREMENT_SYSTEM` | [`metric` &#124; `imperial`] | Optional (default: `metric`) |
-| `CONCURRENCY_PRIORITY` | [`always` &#124; `auto` &#124; `never`], defines the responding behavior of this discloud instance when multiple discloud instances are running on the same Discord server. The `auto` value gives priority to the discloud bot with the lowest discord ID | Optional (default: `auto`) |
-| `DISCORD_BOT_TOKEN` | See [here]() | **Required** |
 | `OPEN_WEATHER_MAP_API_KEY` | See [here]() | **Required** |
+| `DISCORD_BOT_TOKEN` | See [here]() | **Required** |
 | `HOME_FULL_NAME` | The full name of the home location, in order to handle different locations with the same name (e.g. `Paris,fr`) | **Required** |
 | `HOME_DISPLAY_NAME` | The location shorthandle (e.g. `Paris`) | Recommended (default: `HOME_FULL_NAME`) |
-| `PERIODIC_FORECAST_CHANNELS` | The channel names where the periodic forecasts will be broadcasted, separated by a comma ','| Optional (default: `general,weather`) |
+| `MEASUREMENT_SYSTEM` | [`metric` &#124; `imperial`] | Optional (default: `metric`) |
 | `MORNING_FORECAST_TIME` | from `00:00` to `23:59` | Optional (default: `8:00`), the timezone of your Docker container will be used |
 | `EVENING_FORECAST_TIME` | from `00:00` to `23:59` | Optional (default: `20:00`), the timezone of your Docker container will be used |
+| `PERIODIC_FORECAST_CHANNELS` | The channel names where the periodic forecasts will be broadcasted, separated by a comma ','| Optional (default: `general,weather`) |
+| `LANGUAGE` | [`en` &#124; `ru` &#124; `jp` &#124; `de` &#124; `es` &#124; `fr`], The language in which the bot will respond to commands | Optional (default: `en`) |
+| `CONCURRENCY_PRIORITY` | [`always` &#124; `auto` &#124; `never`], defines the responding behavior of this discloud instance when multiple discloud instances are running on the same Discord server. The `auto` value gives priority to the discloud bot with the lowest discord ID | Optional (default: `auto`) |
+| `LOGGING_LEVEL` | [`critical` &#124; `error` &#124; `info` &#124; `debug`] | Optional (default: `info`) |
 
 You can directly add these environment variables inside the `docker-compose.yml` file, in the `services.discloud.environment` section.
