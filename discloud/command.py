@@ -218,7 +218,7 @@ class CommandHandler(object):
                                 "!prevision", "prevision",
                                 "!prév", "!prev"]
 
-    _VALID_HELP_PREFIXES = ["!discloud", "discloud", "!bots", "!bot", "weatherbot", "botweather"]
+    _VALID_HELP_PREFIXES = ["!discloud", "!bots", "!bot", "weatherbot", "botweather"]
 
     def __init__(self,
                  application_settings: ApplicationSettings,
@@ -298,7 +298,15 @@ class CommandHandler(object):
 
     async def handle_help(self, command) -> None:
         logging.info("handling help...")
-        await self._discord_client.send_message(command.channel, "http://github.com/mbouchenoire/discloud")
+
+        msg = "discloud: the weather on your discord server!\n"
+        msg += "\n"
+        msg += "- `!weather [location]` to obtain the current weather at the provided (optional) location\n"
+        msg += "- `!forecast [location]` to obtain the weather forecast at the provided (optional) location\n"
+        msg += "\n"
+        msg += "http://github.com/mbouchenoire/discloud"
+
+        await self._discord_client.send_message(command.channel, msg)
 
     async def handle(self, command) -> None:
         if any(command.content.startswith(prefix) for prefix in CommandHandler._VALID_WEATHER_PREFIXES):
@@ -310,7 +318,7 @@ class CommandHandler(object):
                 return await self.handle_forecast(command)
 
         if any(command.content.startswith(prefix) for prefix in CommandHandler._VALID_HELP_PREFIXES):
-            if self.__has_handling_priority__(command):
+            if True or self.__has_handling_priority__(command):
                 return await self.handle_help(command)
 
 
