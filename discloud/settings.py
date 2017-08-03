@@ -30,6 +30,15 @@ class ConcurrencyPriority(Enum):
     NEVER = "never"
 
 
+class Language(Enum):
+    ENGLISH = "en"
+    RUSSIAN = "ru"
+    JAPANESE = "jp"
+    GERMAN = "de"
+    SPANISH = "es"
+    FRENCH = "fr"
+
+
 class IntegrationSettings(object):
     def __init__(self, discord_bot_token: str, open_weather_map_api_key: str) -> None:
         self.discord_bot_token = discord_bot_token
@@ -53,11 +62,13 @@ class HomeSettings(object):
 class ApplicationSettings(object):
     def __init__(self,
                  logging_level: int,
+                 language: Language,
                  measurement_system: MeasurementSystem,
                  concurrency_priority: ConcurrencyPriority,
                  integration_settings: IntegrationSettings,
                  home_settings: HomeSettings) -> None:
         self.logging_level = logging_level
+        self.language = language
         self.measurement_system = measurement_system
         self.concurrency_priority = concurrency_priority
         self.integration_settings = integration_settings

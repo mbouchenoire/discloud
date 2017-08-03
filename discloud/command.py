@@ -21,13 +21,13 @@ import asyncio
 import configparser
 import schedule
 import discord
-from settings import MeasurementSystem, ConcurrencyPriority, HomeSettings, ApplicationSettings
+from settings import Language, MeasurementSystem, ConcurrencyPriority, HomeSettings, ApplicationSettings
 from weather import Weather, WeatherForecast, WeatherServiceLocator
 
 OWM_CONFIG_PATH = "config/open_weather_map.ini"
 
 SMALL_CHARS = "tifjl1"
-BIG_CHARS = "ATm05"
+BIG_CHARS = "ADTVm05"
 DOUBLE_CHARS = "MW"
 
 
@@ -94,10 +94,20 @@ class SendWeatherDiscordCommand(object):
 
 
 class SendForecastDiscordCommand(object):
-    def __init__(self, discord_client: discord.Client, channel: discord.Channel, forecast: WeatherForecast) -> None:
+    def __init__(self,
+                 discord_client: discord.Client,
+                 channel: discord.Channel,
+                 forecast: WeatherForecast,
+                 language: Language) -> None:
         self._discord_client = discord_client
         self._channel = channel
         self._forecast = forecast
+        self._language = language
+
+    def __get_localized_weekday__(self, weekday_index: int) -> str:
+        config = configparser.ConfigParser()
+        config.read("i18n/{}.ini".format(self._language.value))
+        return config["weekdays"][str(weekday_index)]
 
     async def execute(self) -> None:
         config = configparser.ConfigParser()
@@ -106,7 +116,8 @@ class SendForecastDiscordCommand(object):
         msg = "**@ " + self._forecast.weathers[0].location.title() + "**\n\n"
 
         for weather in self._forecast.weathers:
-            week_day = weather.date.strftime("%A")[:2] + "."
+            weekday_index = weather.date.weekday()
+            week_day = self.__get_localized_weekday__(weekday_index)
             day = weather.date.strftime("%d")
             full_date = (week_day + " " + day)
 
@@ -281,7 +292,9 @@ class CommandHandler(object):
         location = self.__extract_location__(command)
         weather_service = self._weather_service_locator.get_weather_service()
         forecast = weather_service.get_forecast(location, self._application_settings.measurement_system)
-        await SendForecastDiscordCommand(self._discord_client, command.channel, forecast).execute()
+        await SendForecastDiscordCommand(self._discord_client,
+                                         command.channel, forecast,
+                                         self._application_settings.language).execute()
 
     async def handle_help(self, command) -> None:
         logging.info("handling help...")

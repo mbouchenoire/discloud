@@ -19,7 +19,7 @@ import os
 import sys
 import logging
 from typing import List
-from settings import MeasurementSystem, ConcurrencyPriority, IntegrationSettings, HomeSettings, ApplicationSettings
+from settings import MeasurementSystem, Language, ConcurrencyPriority, IntegrationSettings, HomeSettings, ApplicationSettings
 from main import Application
 
 
@@ -32,14 +32,22 @@ class ConfigurationFactory(object):
                        "info": logging.ERROR,
                        "debug": logging.DEBUG}
 
-    _CONCURRENCY_PRIORITIES = {"always": ConcurrencyPriority.ALWAYS,
-                               "auto": ConcurrencyPriority.AUTO,
-                               "never": ConcurrencyPriority.NEVER}
+    _LANGUAGES = {"en": Language.ENGLISH,
+                  "ru": Language.RUSSIAN,
+                  "jp": Language.JAPANESE,
+                  "de": Language.GERMAN,
+                  "es": Language.SPANISH,
+                  "fr": Language.FRENCH}
 
     _MEASUREMENT_SYSTEMS = {"metric": MeasurementSystem.METRIC,
                             "imperial": MeasurementSystem.IMPERIAL}
 
+    _CONCURRENCY_PRIORITIES = {"always": ConcurrencyPriority.ALWAYS,
+                               "auto": ConcurrencyPriority.AUTO,
+                               "never": ConcurrencyPriority.NEVER}
+
     _DEFAULT_LOGGING_LEVEL = "info"
+    _DEFAULT_LANGUAGE = "en"
     _DEFAULT_MEASUREMENT_SYSTEM = "metric"
     _DEFAULT_CONCURRENCY_PRIORITY = "auto"
     _DEFAULT_CHANNELS = "general,weather"
@@ -86,6 +94,9 @@ class ConfigurationFactory(object):
                                             logging_level_str,
                                             ConfigurationFactory._LOGGING_LEVELS)
 
+        language_str = self.__read_env_variable__("LANGUAGE", ConfigurationFactory._DEFAULT_LANGUAGE)
+        language = self.__parse_dict__("LANGUAGE", language_str, ConfigurationFactory._LANGUAGES)
+
         measurement_system_str = self.__read_env_variable__("MEASUREMENT_SYSTEM",
                                                             ConfigurationFactory._DEFAULT_MEASUREMENT_SYSTEM)
 
@@ -126,6 +137,7 @@ class ConfigurationFactory(object):
                                      evening_forecast_time)
 
         application_settings = ApplicationSettings(logging_level,
+                                                   language,
                                                    measurement_system,
                                                    concurrency_priority,
                                                    integration_settings,
