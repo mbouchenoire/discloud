@@ -23,43 +23,9 @@ import schedule
 import discord
 from settings import Language, MeasurementSystem, ConcurrencyPriority, HomeSettings, ApplicationSettings
 from weather import Weather, WeatherForecast, WeatherServiceLocator
+from message_factory import MessageFactory
 
 OWM_CONFIG_PATH = "config/open_weather_map.ini"
-
-SMALL_CHARS = "tifjl1"
-BIG_CHARS = "ADTVm05"
-DOUBLE_CHARS = "MW"
-
-
-def get_offset_needed(text: str) -> int:
-    offset = 0
-
-    for c in SMALL_CHARS:
-        offset += text.count(c)
-
-    for c in BIG_CHARS:
-        offset -= text.count(c)
-
-    for c in DOUBLE_CHARS:
-        offset -= text.count(c) * 3
-
-    return offset
-
-
-def get_temperature_suffix(measurement_system: MeasurementSystem) -> str:
-    if measurement_system is MeasurementSystem.METRIC:
-        return "°C"
-    elif measurement_system is MeasurementSystem.IMPERIAL:
-        return "°F"
-    else:
-        raise ValueError("measurement system must be either metric or imperial")
-
-
-def get_wind_speed_suffix(measurement_system: MeasurementSystem) -> str:
-    if measurement_system is MeasurementSystem.METRIC:
-        return " kmh"
-    elif measurement_system is MeasurementSystem.IMPERIAL:
-        return " mph"
 
 
 class SendWeatherDiscordCommand(object):
@@ -67,29 +33,16 @@ class SendWeatherDiscordCommand(object):
                  discord_client: discord.Client,
                  channel: discord.Channel,
                  home_settings: HomeSettings,
-                 weather: Weather) -> None:
+                 weather: Weather,
+                 message_factory: MessageFactory) -> None:
         self._discord_client = discord_client
         self._channel = channel
         self._home_settings = home_settings
         self._weather = weather
+        self._message_factory = message_factory
 
     async def execute(self) -> None:
-        config = configparser.ConfigParser()
-        config.read(OWM_CONFIG_PATH)
-
-        is_home = self._home_settings.display_name.upper() == self._weather.location.upper()
-
-        header = "" if is_home else "**@ " + self._weather.location.title() + "**: "
-        discord_icon_code = config["discord-icons"][str(self._weather.weather_code)]
-        temperature_suffix = get_temperature_suffix(self._weather.measurement_system)
-        wind_speed_suffix = get_wind_speed_suffix(self._weather.measurement_system)
-
-        msg = "{}:{}:   {}{}   {}%   {}{}".format(header,
-                                                  discord_icon_code,
-                                                  round(self._weather.temperature), temperature_suffix,
-                                                  self._weather.humidity,
-                                                  round(self._weather.wind_speed), wind_speed_suffix)
-
+        msg = self._message_factory.format_weather(self._weather)
         await self._discord_client.send_message(self._channel, msg)
 
 
@@ -98,11 +51,13 @@ class SendForecastDiscordCommand(object):
                  discord_client: discord.Client,
                  channel: discord.Channel,
                  forecast: WeatherForecast,
-                 language: Language) -> None:
+                 language: Language,
+                 message_factory: MessageFactory) -> None:
         self._discord_client = discord_client
         self._channel = channel
         self._forecast = forecast
         self._language = language
+        self._message_factory = message_factory
 
     def __get_localized_weekday__(self, weekday_index: int) -> str:
         config = configparser.ConfigParser()
@@ -110,40 +65,7 @@ class SendForecastDiscordCommand(object):
         return config["weekdays"][str(weekday_index)]
 
     async def execute(self) -> None:
-        config = configparser.ConfigParser()
-        config.read(OWM_CONFIG_PATH)
-
-        msg = "**@ " + self._forecast.weathers[0].location.title() + "**\n\n"
-
-        for weather in self._forecast.weathers:
-            weekday_index = weather.date.weekday()
-            week_day = self.__get_localized_weekday__(weekday_index)
-            day = weather.date.strftime("%d")
-            full_date = (week_day + " " + day)
-
-            standard_full_date_rjust = 11
-            full_date_rjust = standard_full_date_rjust + get_offset_needed(full_date)
-            full_date = full_date.rjust(full_date_rjust)
-
-            discord_icon_code = config["discord-icons"][str(weather.weather_code)]
-            temperature_suffix = get_temperature_suffix(weather.measurement_system)
-            humidity_suffix = "%"
-            wind_speed_suffix = get_wind_speed_suffix(weather.measurement_system)
-
-            str_temperature = str(round(weather.temperature))
-            str_humidity = str(weather.humidity)
-            str_wind_speed = str(round(weather.wind_speed))
-
-            temperature_rjust = 3 + len(temperature_suffix) + get_offset_needed(str_temperature)
-            humidity_rjust = 3 + len(humidity_suffix) + get_offset_needed(str_humidity)
-            wind_speed_rjust = 3 + 1 + len(wind_speed_suffix) + get_offset_needed(str_wind_speed)
-
-            temperature = (str_temperature + temperature_suffix).ljust(temperature_rjust)
-            humidity = (str_humidity + humidity_suffix).rjust(humidity_rjust)
-            wind_speed = (str_wind_speed + wind_speed_suffix).rjust(wind_speed_rjust)
-
-            msg += "{}   :{}:   {}   {}   {}\n".format(full_date, discord_icon_code, temperature, humidity, wind_speed)
-
+        msg = self._message_factory.format_weather_forecast(self._forecast)
         await self._discord_client.send_message(self._channel, msg)
 
 
@@ -154,22 +76,7 @@ class UpdateWeatherPresenceDiscordCommand(object):
         self._should_promote = should_promote
 
     async def execute(self) -> None:
-        temperature_suffix = get_temperature_suffix(self._weather.measurement_system)
-        humidity_suffix = "%"
-        wind_speed_suffix = get_wind_speed_suffix(self._weather.measurement_system)
-
-        temperature_text = str(round(self._weather.temperature)) + temperature_suffix
-        humidity_text = str(self._weather.humidity) + humidity_suffix
-        wind_speed_text = str(round(self._weather.wind_speed)) + wind_speed_suffix
-
-        if self._should_promote:
-            maximum_presence_length = 15
-            promotion_text = "!discloud"
-            spaces = " " * (maximum_presence_length - len(temperature_text) - len(promotion_text))
-            msg = "{}{}{}".format(temperature_text, spaces, promotion_text)
-        else:
-            msg = "{}  {}  {}".format(temperature_text, humidity_text, wind_speed_text)
-
+        msg = MessageFactory.format_presence(self._weather, self._should_promote)
         await self._discord_client.change_presence(game=discord.Game(name=msg))
 
 
@@ -223,10 +130,12 @@ class CommandHandler(object):
     def __init__(self,
                  application_settings: ApplicationSettings,
                  weather_service_locator: WeatherServiceLocator,
-                 discord_client: discord.Client) -> None:
+                 discord_client: discord.Client,
+                 message_factory: MessageFactory) -> None:
         self._application_settings = application_settings
         self._weather_service_locator = weather_service_locator
         self._discord_client = discord_client
+        self._message_factory = message_factory
 
     @staticmethod
     def __is_discloud_bot__(member: discord.Member) -> bool:
@@ -285,7 +194,8 @@ class CommandHandler(object):
         await SendWeatherDiscordCommand(self._discord_client,
                                         command.channel,
                                         self._application_settings.home_settings,
-                                        weather).execute()
+                                        weather,
+                                        self._message_factory).execute()
 
     async def handle_forecast(self, command) -> None:
         logging.info("handling forecast command...")
@@ -294,18 +204,12 @@ class CommandHandler(object):
         forecast = weather_service.get_forecast(location, self._application_settings.measurement_system)
         await SendForecastDiscordCommand(self._discord_client,
                                          command.channel, forecast,
-                                         self._application_settings.language).execute()
+                                         self._application_settings.language,
+                                         self._message_factory).execute()
 
     async def handle_help(self, command) -> None:
         logging.info("handling help...")
-
-        msg = "discloud: the weather on your discord server!\n"
-        msg += "\n"
-        msg += "- `!weather [location]` to obtain the current weather at the provided (optional) location\n"
-        msg += "- `!forecast [location]` to obtain the weather forecast at the provided (optional) location\n"
-        msg += "\n"
-        msg += "http://github.com/mbouchenoire/discloud"
-
+        msg = MessageFactory.format_help()
         await self._discord_client.send_message(command.channel, msg)
 
     async def handle(self, command) -> None:
