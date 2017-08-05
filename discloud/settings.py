@@ -55,8 +55,16 @@ class HomeSettings(object):
         self.full_name = full_name
         self.display_name = display_name
         self.periodic_forecast_channels = periodic_forecast_channels
-        self.morning_forecast_time = morning_forecast_time
-        self.evening_forecast_time = evening_forecast_time
+
+        if morning_forecast_time is None or morning_forecast_time.strip() == "":
+            self.morning_forecast_time = None
+        else:
+            self.morning_forecast_time = morning_forecast_time
+
+        if evening_forecast_time is None or evening_forecast_time.strip() == "":
+            self.evening_forecast_time = None
+        else:
+            self.evening_forecast_time = evening_forecast_time
 
 
 class ApplicationSettings(object):
