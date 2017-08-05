@@ -17,7 +17,7 @@
 
 import discord
 from command import CommandHandler, WeatherDiscordService
-from weather import WeatherServiceLocator
+from weather import WeatherService
 from settings import ApplicationSettings
 from message_factory import MessageFactory
 
@@ -29,18 +29,19 @@ class Application(object):
     def run(self) -> None:
         discord_client = discord.Client()
 
-        weather_service_locator = WeatherServiceLocator(self._settings.integration_settings.open_weather_map_api_key)
+        weather_service = WeatherService(self._settings.integration_settings.open_weather_map_api_key,
+                                         self._settings.integration_settings.weather_underground_api_key)
 
         message_factory = MessageFactory(self._settings)
 
         command_handler = CommandHandler(self._settings,
-                                         weather_service_locator,
+                                         weather_service,
                                          discord_client,
                                          message_factory)
 
         weather_discord_service = WeatherDiscordService(self._settings.measurement_system,
                                                         self._settings.home_settings,
-                                                        weather_service_locator,
+                                                        weather_service,
                                                         discord_client)
 
         @discord_client.event

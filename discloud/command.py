@@ -22,7 +22,7 @@ import configparser
 import schedule
 import discord
 from settings import Language, MeasurementSystem, ConcurrencyPriority, HomeSettings, ApplicationSettings
-from weather import Weather, WeatherForecast, WeatherServiceLocator
+from weather import Weather, WeatherForecast, WeatherService
 from message_factory import MessageFactory
 
 OWM_CONFIG_PATH = "config/open_weather_map.ini"
@@ -129,11 +129,11 @@ class CommandHandler(object):
 
     def __init__(self,
                  application_settings: ApplicationSettings,
-                 weather_service_locator: WeatherServiceLocator,
+                 weather_service: WeatherService,
                  discord_client: discord.Client,
                  message_factory: MessageFactory) -> None:
         self._application_settings = application_settings
-        self._weather_service_locator = weather_service_locator
+        self._weather_service = weather_service
         self._discord_client = discord_client
         self._message_factory = message_factory
 
@@ -189,8 +189,7 @@ class CommandHandler(object):
     async def handle_weather(self, command) -> None:
         logging.info("handling weather command...")
         location = self.__extract_location__(command)
-        weather_service = self._weather_service_locator.get_weather_service()
-        weather = weather_service.get_weather(location, self._application_settings.measurement_system)
+        weather = self._weather_service.get_weather(location, self._application_settings.measurement_system)
         await SendWeatherDiscordCommand(self._discord_client,
                                         command.channel,
                                         self._application_settings.home_settings,
@@ -200,8 +199,7 @@ class CommandHandler(object):
     async def handle_forecast(self, command) -> None:
         logging.info("handling forecast command...")
         location = self.__extract_location__(command)
-        weather_service = self._weather_service_locator.get_weather_service()
-        forecast = weather_service.get_forecast(location, self._application_settings.measurement_system)
+        forecast = self._weather_service.get_forecast(location, self._application_settings.measurement_system)
         await SendForecastDiscordCommand(self._discord_client,
                                          command.channel, forecast,
                                          self._application_settings.language,
@@ -233,11 +231,11 @@ class WeatherDiscordService(object):
     def __init__(self,
                  measurement_system: MeasurementSystem,
                  home_settings: HomeSettings,
-                 weather_service_locator: WeatherServiceLocator,
+                 weather_service: WeatherService,
                  discord_client: discord.Client) -> None:
         self._measurement_system = measurement_system
         self._home_settings = home_settings
-        self._weather_service_locator = weather_service_locator
+        self._weather_service = weather_service
         self._discord_client = discord_client
 
     def __should_send_forecast__(self, channel: discord.Channel) -> bool:
@@ -249,8 +247,7 @@ class WeatherDiscordService(object):
         while not self._discord_client.is_closed:
             try:
                 logging.debug("updating discord bot profile...")
-                weather_service = self._weather_service_locator.get_weather_service()
-                weather = weather_service.get_weather(self._home_settings.full_name, self._measurement_system)
+                weather = self._weather_service.get_weather(self._home_settings.full_name, self._measurement_system)
                 weather.location = self._home_settings.display_name
                 await UpdateWeatherProfileDiscordCommand(self._discord_client, weather).execute()
                 logging.info("discord bot profile updated successfully")
@@ -268,8 +265,7 @@ class WeatherDiscordService(object):
         while not self._discord_client.is_closed:
             try:
                 logging.debug("updating discord bot presence...")
-                weather_service = self._weather_service_locator.get_weather_service()
-                weather = weather_service.get_weather(self._home_settings.full_name, self._measurement_system)
+                weather = self._weather_service.get_weather(self._home_settings.full_name, self._measurement_system)
                 await UpdateWeatherPresenceDiscordCommand(self._discord_client, weather, should_promote).execute()
                 should_promote = not should_promote
                 logging.info("discord bot presence updated successfully")
@@ -291,8 +287,7 @@ class WeatherDiscordService(object):
         def __send_home_forecast__(logging_header: str, weathers_predicate) -> None:
             logging.debug(logging_header)
 
-            weather_service = self._weather_service_locator.get_weather_service()
-            forecast = weather_service.get_forecast(self._home_settings.full_name, self._measurement_system)
+            forecast = self._weather_service.get_forecast(self._home_settings.full_name, self._measurement_system)
 
             forecast.weathers = weathers_predicate(forecast.weathers)
 

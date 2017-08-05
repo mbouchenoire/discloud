@@ -40,9 +40,10 @@ class Language(Enum):
 
 
 class IntegrationSettings(object):
-    def __init__(self, discord_bot_token: str, open_weather_map_api_key: str) -> None:
+    def __init__(self, discord_bot_token: str, open_weather_map_api_key: str, weather_underground_api_key: str) -> None:
         self.discord_bot_token = discord_bot_token
         self.open_weather_map_api_key = open_weather_map_api_key
+        self.weather_underground_api_key = weather_underground_api_key
 
 
 class HomeSettings(object):

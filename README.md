@@ -3,8 +3,9 @@ The weather on your discord server
 
 # Setup
 ## Prerequisites
-1. [Obtain your Open Weather Map API key](https://openweathermap.org/appid)
-2. [Create a Discord bot account](https://github.com/Just-Some-Bots/MusicBot/wiki/FAQ#how-do-i-create-a-bot-account) and save its Token
+1. [Obtain your (free) Open Weather Map API key](https://openweathermap.org/appid)
+2. (Optional) [Obtain your (free) Weather Underground API key](https://www.wunderground.com/weather/api/d/pricing.html)
+2. [Create a (dedicated) Discord bot account](https://github.com/Just-Some-Bots/MusicBot/wiki/FAQ#how-do-i-create-a-bot-account) and save its Token
 3. [Add the bot account to your Discord server](https://github.com/Just-Some-Bots/MusicBot/wiki/FAQ#how-do-i-add-my-bot-account-to-a-server)
 
 ## Docker (recommended)
@@ -17,8 +18,8 @@ services:
     # use the :arm tag if the bot is running on an ARM architecture (e.g. Raspberry Pi)
     image: mbouchenoire/discloud[:arm]
     environment:
+      OPEN_WEATHER_MAP_API_KEY:
       DISCORD_BOT_TOKEN:
-      OPEN_WEATHER_API_KEY:
       # the location from which the bot will provide real-time weather (e.g. 'Paris,fr')
       HOME_FULL_NAME:
     restart: always
@@ -49,10 +50,11 @@ The discloud bot depends on multiple environment variables that can be configure
 
 | Environment variable | Value | Comment |
 | --- | --- | --- |
-| `OPEN_WEATHER_MAP_API_KEY` | See [here]() | **Required** |
-| `DISCORD_BOT_TOKEN` | See [here]() | **Required** |
+| `OPEN_WEATHER_MAP_API_KEY` | See [here](https://openweathermap.org/appid) | **Required** |
+| `WEATHER_UNDERGROUND_API_KEY` | See [here](https://www.wunderground.com/weather/api/d/pricing.html), improve the weather accuracy if provided, but limited to 10 requests per minute. Open Weather Map will be used when the limit is reached | ***Recommended*** |
+| `DISCORD_BOT_TOKEN` | See [here](https://github.com/Just-Some-Bots/MusicBot/wiki/FAQ#how-do-i-create-a-bot-account) | **Required** |
 | `HOME_FULL_NAME` | The full name of the home location, in order to handle different locations with the same name (e.g. `Paris,fr`) | **Required** |
-| `HOME_DISPLAY_NAME` | The location shorthandle (e.g. `Paris`) | Recommended (default: `HOME_FULL_NAME`) |
+| `HOME_DISPLAY_NAME` | The location shorthandle (e.g. `Paris`) | Optional (default: `HOME_FULL_NAME`) |
 | `MEASUREMENT_SYSTEM` | [`metric` &#124; `imperial`] | Optional (default: `metric`) |
 | `MORNING_FORECAST_TIME` | from `00:00` to `23:59`, you can explicitly set it to an empty value if you don't want periodic morning forecasts | Optional (default: `8:00`), the timezone of your Docker container will be used |
 | `EVENING_FORECAST_TIME` | from `00:00` to `23:59`, you can explicitly set it to an empty value if you don't want periodic evening forecasts | Optional (default: `20:00`), the timezone of your Docker container will be used |

@@ -113,6 +113,7 @@ class ConfigurationFactory(object):
 
         discord_bot_token = self.__read_env_variable__("DISCORD_BOT_TOKEN", None)
         open_weather_map_api_key = self.__read_env_variable__("OPEN_WEATHER_MAP_API_KEY", None)
+        weather_underground_api_key = self.__read_env_variable__("WEATHER_UNDERGROUND_API_KEY", "")
         home_full_name = self.__read_env_variable__("HOME_FULL_NAME", None)
         home_display_name = self.__read_env_variable__("HOME_DISPLAY_NAME", home_full_name)
 
@@ -128,7 +129,8 @@ class ConfigurationFactory(object):
                                                            ConfigurationFactory._DEFAULT_EVENING_FORECAST_TIME)
 
         integration_settings = IntegrationSettings(discord_bot_token,
-                                                   open_weather_map_api_key)
+                                                   open_weather_map_api_key,
+                                                   weather_underground_api_key)
 
         home_settings = HomeSettings(home_full_name,
                                      home_display_name,
