@@ -21,6 +21,7 @@ import asyncio
 import configparser
 import schedule
 import discord
+from typing import List
 from settings import Language, MeasurementSystem, ConcurrencyPriority, HomeSettings, ApplicationSettings
 from weather import Weather, WeatherForecast, WeatherService
 from message_factory import MessageFactory
@@ -114,19 +115,6 @@ class CommandHandler(object):
     _INVALID_WEATHER_COMMAND_FORMAT_MSG = "invalid weather command format (should be '!weather Paris')"
     _INVALID_OSSET_MSG = "the forecast daily offset must be >= 0"
 
-    _VALID_WEATHER_PREFIXES = ["!weather", "weather",
-                               "!météo", "météo",
-                               "!meteo", "meteo"]
-
-    _VALID_FORECAST_PREFIXES = ["!forecast", "forecast",
-                                "!prévisions", "prévisions",
-                                "!previsions", "previsions",
-                                "!prévision", "prévision",
-                                "!prevision", "prevision",
-                                "!prév", "!prev"]
-
-    _VALID_HELP_PREFIXES = ["!discloud", "!bots", "!bot", "weatherbot", "botweather"]
-
     def __init__(self,
                  application_settings: ApplicationSettings,
                  weather_service: WeatherService,
@@ -157,6 +145,16 @@ class CommandHandler(object):
     def __is_parametized_command__(command) -> bool:
         return len(command.content.split(" ")) > 1
 
+    @staticmethod
+    def __build_commands__(prefixes: List[str], commands: List[str]) -> List[str]:
+        command_prefixes = list()
+
+        for command in commands:
+            for prefix in prefixes:
+                command_prefixes.append(prefix + command)
+
+        return command_prefixes
+
     def __has_handling_priority__(self, command) -> bool:
         # Currently, the bot with the lowest ID detains the handling priority
 
@@ -172,13 +170,28 @@ class CommandHandler(object):
 
         return True
 
+    def __build_weather_commands__(self) -> List[str]:
+        return CommandHandler.__build_commands__(self._application_settings.command_settings.prefixes,
+                                                 self._application_settings.command_settings.weather)
+
+    def __build_forecast_commands__(self) -> List[str]:
+        return CommandHandler.__build_commands__(self._application_settings.command_settings.prefixes,
+                                                 self._application_settings.command_settings.forecast)
+
+    def __build_help_commands__(self) -> List[str]:
+        return CommandHandler.__build_commands__(self._application_settings.command_settings.prefixes,
+                                                 self._application_settings.command_settings.help)
+
     def __extract_location__(self, command) -> str:
         content = command.content.replace("@ ", "@").replace("@", "")
 
-        for prefix in CommandHandler._VALID_WEATHER_PREFIXES:
+        weather_commands = self.__build_weather_commands__()
+        forecast_commands = self.__build_forecast_commands__()
+
+        for prefix in weather_commands:
             content = content.replace(prefix, "", 1)
 
-        for prefix in CommandHandler._VALID_FORECAST_PREFIXES:
+        for prefix in forecast_commands:
             content = content.replace(prefix, "", 1)
 
         if content is None or content.strip() == "":
@@ -211,15 +224,19 @@ class CommandHandler(object):
         await self._discord_client.send_message(command.channel, msg)
 
     async def handle(self, command) -> None:
-        if any(command.content.startswith(prefix) for prefix in CommandHandler._VALID_WEATHER_PREFIXES):
+        weather_commands = self.__build_weather_commands__()
+        forecast_commands = self.__build_forecast_commands__()
+        help_commands = self.__build_help_commands__()
+
+        if any(command.content.startswith(prefix) for prefix in weather_commands):
             if not CommandHandler.__is_parametized_command__(command) or self.__has_handling_priority__(command):
                 return await self.handle_weather(command)
 
-        if any(command.content.startswith(prefix) for prefix in CommandHandler._VALID_FORECAST_PREFIXES):
+        if any(command.content.startswith(prefix) for prefix in forecast_commands):
             if not CommandHandler.__is_parametized_command__(command) or self.__has_handling_priority__(command):
                 return await self.handle_forecast(command)
 
-        if any(command.content.startswith(prefix) for prefix in CommandHandler._VALID_HELP_PREFIXES):
+        if any(command.content.startswith(prefix) for prefix in help_commands):
             if True or self.__has_handling_priority__(command):
                 return await self.handle_help(command)
 

@@ -46,6 +46,14 @@ class IntegrationSettings(object):
         self.weather_underground_api_key = weather_underground_api_key
 
 
+class CommandSettings(object):
+    def __init__(self, prefixes: List[str], weather: List[str], forecast: List[str], help: List[str]) -> None:
+        self.prefixes = prefixes
+        self.weather = weather
+        self.forecast = forecast
+        self.help = help
+
+
 class HomeSettings(object):
     def __init__(self,
                  full_name: str,
@@ -75,10 +83,12 @@ class ApplicationSettings(object):
                  measurement_system: MeasurementSystem,
                  concurrency_priority: ConcurrencyPriority,
                  integration_settings: IntegrationSettings,
+                 command_settings: CommandSettings,
                  home_settings: HomeSettings) -> None:
         self.logging_level = logging_level
         self.language = language
         self.measurement_system = measurement_system
         self.concurrency_priority = concurrency_priority
         self.integration_settings = integration_settings
+        self.command_settings = command_settings
         self.home_settings = home_settings

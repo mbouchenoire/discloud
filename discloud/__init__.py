@@ -18,8 +18,10 @@
 import os
 import sys
 import logging
+import configparser
 from typing import List
-from settings import MeasurementSystem, Language, ConcurrencyPriority, IntegrationSettings, HomeSettings, ApplicationSettings
+from settings import MeasurementSystem, Language, ConcurrencyPriority, IntegrationSettings, CommandSettings, \
+    HomeSettings, ApplicationSettings
 from main import Application
 
 
@@ -114,6 +116,19 @@ class ConfigurationFactory(object):
         discord_bot_token = self.__read_env_variable__("DISCORD_BOT_TOKEN", None)
         open_weather_map_api_key = self.__read_env_variable__("OPEN_WEATHER_MAP_API_KEY", None)
         weather_underground_api_key = self.__read_env_variable__("WEATHER_UNDERGROUND_API_KEY", "")
+
+        config = configparser.ConfigParser()
+        config.read("config/commands.ini")
+
+        command_prefixes_str = config["commands"]["prefixes"]
+        command_prefixes = ConfigurationFactory.__parse_array__(command_prefixes_str)
+        weather_commands_str = config["commands"]["weather"]
+        weather_commands = ConfigurationFactory.__parse_array__(weather_commands_str)
+        forecast_commands_str = config["commands"]["forecast"]
+        forecast_commands = ConfigurationFactory.__parse_array__(forecast_commands_str)
+        help_commands_str = config["commands"]["help"]
+        help_commands = ConfigurationFactory.__parse_array__(help_commands_str)
+
         home_full_name = self.__read_env_variable__("HOME_FULL_NAME", None)
         home_display_name = self.__read_env_variable__("HOME_DISPLAY_NAME", home_full_name)
 
@@ -132,6 +147,8 @@ class ConfigurationFactory(object):
                                                    open_weather_map_api_key,
                                                    weather_underground_api_key)
 
+        command_settings = CommandSettings(command_prefixes, weather_commands, forecast_commands, help_commands)
+
         home_settings = HomeSettings(home_full_name,
                                      home_display_name,
                                      periodic_forecast_channels,
@@ -143,6 +160,7 @@ class ConfigurationFactory(object):
                                                    measurement_system,
                                                    concurrency_priority,
                                                    integration_settings,
+                                                   command_settings,
                                                    home_settings)
 
         return application_settings

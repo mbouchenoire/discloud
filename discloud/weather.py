@@ -57,7 +57,7 @@ class WeatherUndergroundRepository(WeatherRepository):
     NAME = "WU"
 
     _HOST = "api.wunderground.com"
-    _REQUESTS_PER_MINUTE = 9 # should be 10 but we keep it safe
+    _REQUESTS_PER_MINUTE = 9  # should be 10 but we keep it safe
 
     def __init__(self, wu_api_key: str) -> None:
         self._wu_api_key = wu_api_key
