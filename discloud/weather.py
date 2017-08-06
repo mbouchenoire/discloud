@@ -86,14 +86,12 @@ class WeatherUndergroundRepository(WeatherRepository):
         return config["owm-codes"][wu_icon_code]
 
     def __get_weather_json__(self, location: str):
-        endpoint_template = "/api/{}/conditions/q/{}.json"
-        return WeatherUndergroundRepository.__get_json__(endpoint_template.format(self._wu_api_key, location),
-                                                         "weather")
+        endpoint = "/api/{}/conditions/q/{}.json".format(self._wu_api_key, location.replace(" ", "_"))
+        return WeatherUndergroundRepository.__get_json__(endpoint, "weather")
 
     def __get_forecast_json__(self, location: str):
-        endpoint_template = "/api/{}/forecast/q/{}.json"
-        return WeatherUndergroundRepository.__get_json__(endpoint_template.format(self._wu_api_key, location),
-                                                         "weather forecast")
+        endpoint = "/api/{}/forecast/q/{}.json".format(self._wu_api_key, location.replace(" ", "_"))
+        return WeatherUndergroundRepository.__get_json__(endpoint, "weather forecast")
 
     def is_queryable(self) -> bool:
         if len(self._past_requests) > WeatherUndergroundRepository._REQUESTS_PER_DAY:
