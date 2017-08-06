@@ -80,7 +80,7 @@ class ConfigurationFactory(object):
         try:
             return os.environ[key]
         except KeyError:
-            if default_value:
+            if default_value is not None:
                 msg_template = "optional environment variable '{}' is not defined, default value '{}' will be used"
                 logging.info(msg_template.format(key, default_value))
                 return default_value
