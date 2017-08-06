@@ -123,7 +123,7 @@ class MessageFactory(object):
                                                    round(weather.wind_speed), wind_speed_suffix)
 
     @staticmethod
-    def format_presence(weather: Weather, should_promote: bool) -> str:
+    def format_presence(weather: Weather, should_help: bool) -> str:
         temperature_suffix = MessageFactory.__get_temperature_suffix__(weather.measurement_system)
         humidity_suffix = "%"
         wind_speed_suffix = MessageFactory.__get_wind_speed_suffix__(weather.measurement_system)
@@ -132,7 +132,7 @@ class MessageFactory(object):
         humidity_text = str(weather.humidity) + humidity_suffix
         wind_speed_text = str(round(weather.wind_speed)) + wind_speed_suffix
 
-        if should_promote:
+        if should_help:
             maximum_presence_length = 15
             promotion_text = "!discloud"
             spaces = " " * (maximum_presence_length - len(temperature_text) - len(promotion_text))

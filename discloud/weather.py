@@ -57,6 +57,7 @@ class WeatherUndergroundRepository(WeatherRepository):
     NAME = "WU"
 
     _HOST = "api.wunderground.com"
+    _REQUESTS_PER_DAY = 490  # should be 500 but we keep it safe
     _REQUESTS_PER_MINUTE = 9  # should be 10 but we keep it safe
 
     def __init__(self, wu_api_key: str) -> None:
@@ -95,16 +96,18 @@ class WeatherUndergroundRepository(WeatherRepository):
                                                          "weather forecast")
 
     def is_queryable(self) -> bool:
-        if len(self._past_requests) > WeatherUndergroundRepository._REQUESTS_PER_MINUTE:
+        if len(self._past_requests) > WeatherUndergroundRepository._REQUESTS_PER_DAY:
             raise ValueError("there are too many requests in the queue")
 
-        if len(self._past_requests) < WeatherUndergroundRepository._REQUESTS_PER_MINUTE:
-            return True
+        within_daily_threshold = len(self._past_requests) <= WeatherUndergroundRepository._REQUESTS_PER_DAY
 
-        oldest_request = self._past_requests[-1]
-        seconds_since_oldest_request = (datetime.datetime.now() - oldest_request).total_seconds()
+        if len(self._past_requests) <= WeatherUndergroundRepository._REQUESTS_PER_MINUTE:
+            within_minute_threshold = True
+        else:
+            oldest_minute_request = self._past_requests[WeatherUndergroundRepository._REQUESTS_PER_MINUTE-1]
+            within_minute_threshold = (datetime.datetime.now() - oldest_minute_request).total_seconds() <= 60
 
-        return seconds_since_oldest_request <= 60
+        return within_daily_threshold and within_minute_threshold
 
     def get_weather(self, location: str, measurement_system: MeasurementSystem) -> Weather:
         logging.debug("retrieving current weather @{} using Weather Underground...".format(location))
@@ -130,7 +133,7 @@ class WeatherUndergroundRepository(WeatherRepository):
 
         self._past_requests.insert(0, datetime.datetime.now())
 
-        if len(self._past_requests) > WeatherUndergroundRepository._REQUESTS_PER_MINUTE:
+        if len(self._past_requests) > WeatherUndergroundRepository._REQUESTS_PER_DAY:
             self._past_requests.pop()
 
         return Weather(location, date, measurement_system, weather_code, temperature, humidity, wind_speed)
@@ -167,7 +170,7 @@ class WeatherUndergroundRepository(WeatherRepository):
 
         self._past_requests.insert(0, datetime.datetime.now())
 
-        if len(self._past_requests) > WeatherUndergroundRepository._REQUESTS_PER_MINUTE:
+        if len(self._past_requests) > WeatherUndergroundRepository._REQUESTS_PER_DAY:
             self._past_requests.pop()
 
         return WeatherForecast(weathers)

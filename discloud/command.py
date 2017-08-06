@@ -71,13 +71,13 @@ class SendForecastDiscordCommand(object):
 
 
 class UpdateWeatherPresenceDiscordCommand(object):
-    def __init__(self, discord_client: discord.Client, weather: Weather, should_promote: bool) -> None:
+    def __init__(self, discord_client: discord.Client, weather: Weather, should_help: bool) -> None:
         self._discord_client = discord_client
         self._weather = weather
-        self._should_promote = should_promote
+        self._should_help = should_help
 
     async def execute(self) -> None:
-        msg = MessageFactory.format_presence(self._weather, self._should_promote)
+        msg = MessageFactory.format_presence(self._weather, self._should_help)
         await self._discord_client.change_presence(game=discord.Game(name=msg))
 
 
@@ -242,8 +242,8 @@ class CommandHandler(object):
 
 
 class WeatherDiscordService(object):
-    _UPDATE_PROFILE_FREQUENCY = 31 * 60  # 31 minutes
-    _UPDATE_PRESENCE_FREQUENCY = 60  # 1 minute
+    _REALTIME_WEATHER_FREQUENCY = 31 * 60  # 31 minutes
+    _HELP_FREQUENCY = 1 * 60  # 1 minute
 
     def __init__(self,
                  measurement_system: MeasurementSystem,
@@ -267,8 +267,8 @@ class WeatherDiscordService(object):
                 weather = self._weather_service.get_weather(self._home_settings.full_name, self._measurement_system)
                 weather.location = self._home_settings.display_name
                 await UpdateWeatherProfileDiscordCommand(self._discord_client, weather).execute()
-                logging.info("discord bot profile updated successfully")
-                await asyncio.sleep(WeatherDiscordService._UPDATE_PROFILE_FREQUENCY)
+                logging.debug("discord bot profile updated successfully")
+                await asyncio.sleep(WeatherDiscordService._REALTIME_WEATHER_FREQUENCY)
             except discord.HTTPException:
                 logging.exception("discord bot profile update failed")
 
@@ -277,16 +277,28 @@ class WeatherDiscordService(object):
     async def update_presence(self) -> None:
         await self._discord_client.wait_until_ready()
 
-        should_promote = False
+        weather = None
+        should_help = False
 
         while not self._discord_client.is_closed:
             try:
                 logging.debug("updating discord bot presence...")
-                weather = self._weather_service.get_weather(self._home_settings.full_name, self._measurement_system)
-                await UpdateWeatherPresenceDiscordCommand(self._discord_client, weather, should_promote).execute()
-                should_promote = not should_promote
-                logging.info("discord bot presence updated successfully")
-                await asyncio.sleep(WeatherDiscordService._UPDATE_PRESENCE_FREQUENCY)
+
+                if weather is None:
+                    weather = self._weather_service.get_weather(self._home_settings.full_name, self._measurement_system)
+                    weather_date = datetime.datetime.now()
+                else:
+                    seconds_since_realtime_update = (datetime.datetime.now() - weather_date).total_seconds()
+
+                    if seconds_since_realtime_update >= WeatherDiscordService._REALTIME_WEATHER_FREQUENCY:
+                        weather = self._weather_service.get_weather(self._home_settings.full_name,
+                                                                    self._measurement_system)
+                        weather_date = datetime.datetime.now()
+
+                await UpdateWeatherPresenceDiscordCommand(self._discord_client, weather, should_help).execute()
+                should_help = not should_help
+                logging.debug("discord bot presence updated successfully")
+                await asyncio.sleep(WeatherDiscordService._HELP_FREQUENCY)
             except discord.HTTPException:
                 logging.exception("discord bot presence update failed")
 
