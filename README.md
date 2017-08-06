@@ -1,5 +1,20 @@
-# discloud
-The weather on your discord server
+# Features
+## Real-time weather
+The discloud bot is displaying **real-time weather** at the configured location **directly on its Discord profile** :
+
+![bot_profile](docs/bot_profile.png)
+
+Users can also obtain the **current weather** at **any location**, using the command `!weather [location]`, for example `!weather San Francisco,CA`:
+
+![weather](docs/weather.png)
+
+## Weather forecast
+
+Users can obtain the weather forecast for any location using the command `!forecast [location]`, for example `!forecast Los Angeles,CA` :
+
+![forecast](docs/forecast.png)
+
+If the `[location]` argument is not provided, the bot's configured location (for the real-time weather) will be used. 
 
 # Setup
 ## Prerequisites
