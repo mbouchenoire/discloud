@@ -93,6 +93,12 @@ class WeatherUndergroundRepository(WeatherRepository):
         endpoint = "/api/{}/forecast/q/{}.json".format(self._wu_api_key, location.replace(" ", "_"))
         return WeatherUndergroundRepository.__get_json__(endpoint, "weather forecast")
 
+    def __log_request__(self):
+        self._past_requests.insert(0, datetime.datetime.now())
+
+        if len(self._past_requests) > WeatherUndergroundRepository._REQUESTS_PER_DAY:
+            self._past_requests = self._past_requests[:WeatherUndergroundRepository._REQUESTS_PER_DAY]
+
     def is_queryable(self) -> bool:
         if len(self._past_requests) > WeatherUndergroundRepository._REQUESTS_PER_DAY:
             raise ValueError("there are too many requests in the queue")
@@ -129,10 +135,7 @@ class WeatherUndergroundRepository(WeatherRepository):
         humidity = int(humidity_str)
         wind_speed = int(wind_speed_str)
 
-        self._past_requests.insert(0, datetime.datetime.now())
-
-        if len(self._past_requests) > WeatherUndergroundRepository._REQUESTS_PER_DAY:
-            self._past_requests.pop()
+        self.__log_request__()
 
         return Weather(location, date, measurement_system, weather_code, temperature, humidity, wind_speed)
 
@@ -166,10 +169,7 @@ class WeatherUndergroundRepository(WeatherRepository):
 
             weathers.append(weather)
 
-        self._past_requests.insert(0, datetime.datetime.now())
-
-        if len(self._past_requests) > WeatherUndergroundRepository._REQUESTS_PER_DAY:
-            self._past_requests.pop()
+        self.__log_request__()
 
         return WeatherForecast(weathers)
 
