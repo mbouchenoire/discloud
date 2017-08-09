@@ -24,31 +24,29 @@ If the `[location]` argument is not provided, the bot's configured location (for
 3. [Add the bot account to your Discord server](https://github.com/Just-Some-Bots/MusicBot/wiki/FAQ#how-do-i-add-my-bot-account-to-a-server)
 
 ## Docker (recommended)
-1. Create the following `docker-compose.yml` file and configure the required environment variables obtained 
+1. Create the following `docker_run.sh` file and configure the required environment variables obtained 
 through the prerequisites:
-```yaml
-version: "3"
-services:
-  discloud:
-    # use the :arm tag if the bot is running on an ARM architecture (e.g. Raspberry Pi)
-    image: mbouchenoire/discloud[:arm]
-    environment:
-      OPEN_WEATHER_MAP_API_KEY:
-      DISCORD_BOT_TOKEN:
-      # the location from which the bot will provide real-time weather (e.g. 'Paris,fr')
-      HOME_FULL_NAME:
-    restart: always
-``` 
-2. Start the bot's container using [docker-compose](https://docs.docker.com/compose/): `docker-compose up`
-
-In order to update the bot once its container is running, run these commands where the 
-`docker-compose.yml` file is located:
 ```bash
+#!/bin/bash
+docker run -dit \
+    --name discloud \
+    -e OPEN_WEATHER_MAP_API_KEY="" \
+    -e DISCORD_BOT_TOKEN="" \
+    -e HOME_FULL_NAME="London,UK" \
+    --restart=always \
+    mbouchenoire/discloud[:arm] # use the :arm tag if the bot is running on an ARM architecture (e.g. Raspberry Pi)
+``` 
+
+2. Run the `docker_run.sh` script to start the bot
+
+3. In order to update the bot once its container is running, you can use the following script:
+```bash
+#!/bin/bash
 # use the :arm tag if the bot is running on an ARM architecture (e.g. Raspberry Pi)
 docker pull mbouchenoire/discloud[:arm]
 docker stop discloud
 docker rm discloud
-docker-compose up
+sh docker_run.sh
 ```
 
 ## Debian 8+
