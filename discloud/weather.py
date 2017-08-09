@@ -66,7 +66,7 @@ class WeatherUndergroundRepository(WeatherRepository):
 
     @staticmethod
     def __get_json__(endpoint: str, title: str):
-        conn = http.client.HTTPSConnection(WeatherUndergroundRepository._HOST)
+        conn = http.client.HTTPConnection(WeatherUndergroundRepository._HOST)
 
         try:
             conn.request("GET", endpoint)
