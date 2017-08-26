@@ -276,6 +276,7 @@ class WeatherDiscordService(object):
 
     async def update_presence(self) -> None:
         await self._discord_client.wait_until_ready()
+        await asyncio.sleep(5)  # to mitigate concurrency problems with update_profile()
 
         weather = None
         should_help = False
