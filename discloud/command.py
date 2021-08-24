@@ -32,7 +32,7 @@ OWM_CONFIG_PATH = "config/open_weather_map.ini"
 class SendWeatherDiscordCommand(object):
     def __init__(self,
                  discord_client: discord.Client,
-                 channel: discord.Channel,
+                 channel: discord.TextChannel,
                  home_settings: HomeSettings,
                  weather: Weather,
                  message_factory: MessageFactory) -> None:
@@ -50,7 +50,7 @@ class SendWeatherDiscordCommand(object):
 class SendForecastDiscordCommand(object):
     def __init__(self,
                  discord_client: discord.Client,
-                 channel: discord.Channel,
+                 channel: discord.TextChannel,
                  forecast: WeatherForecast,
                  language: Language,
                  message_factory: MessageFactory) -> None:
@@ -255,7 +255,7 @@ class WeatherDiscordService(object):
         self._weather_service = weather_service
         self._discord_client = discord_client
 
-    def __should_send_forecast__(self, channel: discord.Channel) -> bool:
+    def __should_send_forecast__(self, channel: discord.TextChannel) -> bool:
         return channel.name in self._home_settings.periodic_forecast_channels
 
     async def update_profile(self) -> None:
