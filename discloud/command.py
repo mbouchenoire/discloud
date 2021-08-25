@@ -261,7 +261,7 @@ class WeatherDiscordService(object):
     async def update_profile(self) -> None:
         await self._discord_client.wait_until_ready()
 
-        while not self._discord_client.is_closed:
+        while not self._discord_client.is_closed():
             try:
                 logging.debug("updating discord bot profile...")
                 weather = self._weather_service.get_weather(self._home_settings.full_name, self._measurement_system)
@@ -281,7 +281,7 @@ class WeatherDiscordService(object):
         weather = None
         should_help = False
 
-        while not self._discord_client.is_closed:
+        while not self._discord_client.is_closed():
             try:
                 logging.debug("updating discord bot presence...")
 
