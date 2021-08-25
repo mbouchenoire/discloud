@@ -53,7 +53,7 @@ class ConfigurationFactory(object):
     _DEFAULT_MEASUREMENT_SYSTEM = "metric"
     _DEFAULT_CONCURRENCY_PRIORITY = "auto"
     _DEFAULT_CHANNELS = "general,weather"
-    _DEFAULT_MORNING_FORECAST_TIME = "8:00"
+    _DEFAULT_MORNING_FORECAST_TIME = "08:00"
     _DEFAULT_EVENING_FORECAST_TIME = "20:00"
 
     def __init__(self):
