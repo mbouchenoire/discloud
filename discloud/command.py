@@ -78,7 +78,7 @@ class UpdateWeatherPresenceDiscordCommand(object):
 
     async def execute(self) -> None:
         msg = MessageFactory.format_presence(self._weather, self._should_help)
-        await self._discord_client.change_presence(game=discord.Game(name=msg))
+        await self._discord_client.change_presence(activity=discord.Game(name=msg))
 
 
 class UpdateWeatherProfileDiscordCommand(object):
@@ -108,7 +108,7 @@ class UpdateWeatherProfileDiscordCommand(object):
 
     async def execute(self) -> None:
         avatar_bytes = UpdateWeatherProfileDiscordCommand.__get_avatar_bytes__(self._weather.weather_code)
-        await self._discord_client.edit_profile(password=None, username=self._weather.location, avatar=avatar_bytes)
+        await self._discord_client.user.edit(password=None, username=self._weather.location, avatar=avatar_bytes)
 
 
 class CommandHandler(object):
