@@ -185,7 +185,7 @@ class OpenWeatherMapRepository(WeatherRepository):
         if measurement_system is MeasurementSystem.METRIC:
             return "celsius"
         elif measurement_system is MeasurementSystem.IMPERIAL:
-            return "kelvin"
+            return "fahrenheit"
         else:
             raise ValueError("measurement system must be either metric or imperial")
 

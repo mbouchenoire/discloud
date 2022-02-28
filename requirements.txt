@@ -1,3 +1,3 @@
 discord.py
-pyowm
+pyowm>=2.0,<3.0
 schedule

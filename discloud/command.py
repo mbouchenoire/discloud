@@ -32,7 +32,7 @@ OWM_CONFIG_PATH = "config/open_weather_map.ini"
 class SendWeatherDiscordCommand(object):
     def __init__(self,
                  discord_client: discord.Client,
-                 channel: discord.Channel,
+                 channel: discord.TextChannel,
                  home_settings: HomeSettings,
                  weather: Weather,
                  message_factory: MessageFactory) -> None:
@@ -50,7 +50,7 @@ class SendWeatherDiscordCommand(object):
 class SendForecastDiscordCommand(object):
     def __init__(self,
                  discord_client: discord.Client,
-                 channel: discord.Channel,
+                 channel: discord.TextChannel,
                  forecast: WeatherForecast,
                  language: Language,
                  message_factory: MessageFactory) -> None:
@@ -78,7 +78,7 @@ class UpdateWeatherPresenceDiscordCommand(object):
 
     async def execute(self) -> None:
         msg = MessageFactory.format_presence(self._weather, self._should_help)
-        await self._discord_client.change_presence(game=discord.Game(name=msg))
+        await self._discord_client.change_presence(activity=discord.Game(name=msg))
 
 
 class UpdateWeatherProfileDiscordCommand(object):
@@ -108,7 +108,7 @@ class UpdateWeatherProfileDiscordCommand(object):
 
     async def execute(self) -> None:
         avatar_bytes = UpdateWeatherProfileDiscordCommand.__get_avatar_bytes__(self._weather.weather_code)
-        await self._discord_client.edit_profile(password=None, username=self._weather.location, avatar=avatar_bytes)
+        await self._discord_client.user.edit(password=None, username=self._weather.location, avatar=avatar_bytes)
 
 
 class CommandHandler(object):
@@ -255,13 +255,13 @@ class WeatherDiscordService(object):
         self._weather_service = weather_service
         self._discord_client = discord_client
 
-    def __should_send_forecast__(self, channel: discord.Channel) -> bool:
+    def __should_send_forecast__(self, channel: discord.TextChannel) -> bool:
         return channel.name in self._home_settings.periodic_forecast_channels
 
     async def update_profile(self) -> None:
         await self._discord_client.wait_until_ready()
 
-        while not self._discord_client.is_closed:
+        while not self._discord_client.is_closed():
             try:
                 logging.debug("updating discord bot profile...")
                 weather = self._weather_service.get_weather(self._home_settings.full_name, self._measurement_system)
@@ -281,7 +281,7 @@ class WeatherDiscordService(object):
         weather = None
         should_help = False
 
-        while not self._discord_client.is_closed:
+        while not self._discord_client.is_closed():
             try:
                 logging.debug("updating discord bot presence...")
 
